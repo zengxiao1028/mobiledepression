@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 import os
 import pickle
-
+import MyConfig
 def prepare_label(file_path, parse_cols):
     labels = pd.read_excel(file_path,parse_cols=parse_cols)
     phq9 = labels[82:]
@@ -18,13 +18,14 @@ def main():
     ## CL263NI
     ## 1155329
     ## total phq9_score does not match
-    file_path = 'G:\depressiondata\CS120Data\CS120Clinical\CS120Final_Screener.xlsx'
+    clinical_path = MyConfig.clinical_path
+    file_path = os.path.join(clinical_path,'CS120Final_Screener.xlsx')
     week0_phq9 = prepare_label(file_path,'E,BM:BU')
     week0_phq9['sum_score'] = week0_phq9['phq01'] + week0_phq9['phq02'] + week0_phq9['phq03'] + week0_phq9['phq04']\
                         + week0_phq9['phq05'] + week0_phq9['phq06'] + week0_phq9['phq07'] + week0_phq9['phq08']
     week0_phq9_dict = week0_phq9[['ID','sum_score']].set_index('ID').T.to_dict('list')
 
-    file_path = 'G:\depressiondata\CS120Data\CS120Clinical\CS120Final_3week.xlsx'
+    file_path = os.path.join(clinical_path, 'CS120Final_3week.xlsx')
     week3_phq9 = prepare_label(file_path, 'E,BJ:BQ')
     week3_phq9['sum_score'] = week3_phq9['phqPrompt01_3wk Little interest or pleasure in doing things'] + \
                               week3_phq9['phqPrompt01_3wk Feeling down; depressed; or hopeless'] + \
@@ -37,7 +38,7 @@ def main():
                                          'Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual']
     week3_phq9_dict = week3_phq9[['ID','sum_score']].set_index('ID').T.to_dict('list')
 
-    file_path = 'G:\depressiondata\CS120Data\CS120Clinical\CS120Final_6week.xlsx'
+    file_path = os.path.join(clinical_path,'CS120Final_6week.xlsx')
     week6_phq9 = prepare_label(file_path, 'E,BJ:BQ')
     week6_phq9['sum_score'] = week6_phq9['phqPrompt01_6wk Little interest or pleasure in doing things'] + \
                               week6_phq9['phqPrompt01_6wk Feeling down; depressed; or hopeless'] + \
@@ -102,11 +103,14 @@ def main():
                 filtered_labels[subject] = 1
                 dprsn_counter += 1
     print 'valid sample num:',dprsn_counter,ndprsn_counter
-    pickle.dump(filtered_labels,'target.pkl',)
+
+    with open('target.pkl', 'wb') as f:
+        pickle.dump(filtered_labels,f)
 
     print 'Finish'
 
 if __name__ == '__main__':
+
     main()
 
 

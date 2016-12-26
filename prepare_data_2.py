@@ -11,7 +11,7 @@ def prepare_data(subjects,data_dir ):
     import os
 
     deltat = 1800
-    win = 24 * 3600
+    win = 24 * 3600  # in the past one day
 
     x = np.array([])
     y = np.array([])
@@ -25,47 +25,27 @@ def prepare_data(subjects,data_dir ):
         else:
             print ' skipping - no data'
             continue
-        if os.path.exists(data_dir + subject + '/aud.csv'):
-            data_aud = pd.read_csv(data_dir + subject + '/aud.csv', sep='\t', header=None)
-        else:
-            print ' skipping - no data'
-            continue
-        if os.path.exists(data_dir + subject + '/bat.csv'):
-            data_bat = pd.read_csv(data_dir + subject + '/bat.csv', sep='\t', header=None)
-        else:
-            print ' skipping - no data'
-            continue
+
+
         if os.path.exists(data_dir + subject + '/cal.csv'):
             data_cal = pd.read_csv(data_dir + subject + '/cal.csv', sep='\t', header=None)
         else:
             print ' skipping - no data'
             continue
+
         if os.path.exists(data_dir + subject + '/coe.csv'):
             data_coe = pd.read_csv(data_dir + subject + '/coe.csv', sep='\t', header=None)
         else:
             print ' skipping - no data'
             continue
-        if os.path.exists(data_dir + subject + '/fus.csv'):
-            data_fus = pd.read_csv(data_dir + subject + '/fus.csv', sep='\t', header=None)
-        else:
-            print ' skipping - no data'
-            continue
+
         if os.path.exists(data_dir + subject + '/scr.csv'):
             data_scr = pd.read_csv(data_dir + subject + '/scr.csv', sep='\t', header=None)
         else:
             print ' skipping - no data'
             continue
-        if os.path.exists(data_dir + subject + '/wif.csv'):
-            data_wif = pd.read_csv(data_dir + subject + '/wif.csv', sep='\t', header=None)
-        else:
-            print ' skipping - no data'
-            continue
-        if os.path.exists(data_dir + subject + '/emm.csv'):
-            target = pd.read_csv(data_dir + subject + '/emm.csv', sep='\t', header=None)
-        else:
-            print ' skipping - no data'
-            continue
-        print
+
+
 
         for (i, t1) in enumerate(target[0]):
             lat = np.nan
@@ -73,11 +53,7 @@ def prepare_data(subjects,data_dir ):
 
             for t2 in np.arange(t1 - win, t1, deltat):
 
-                # GPS data
-                ind = np.where(data_fus[0].between(t2, t2 + deltat, inclusive=True))[0]
-                if ind.size:
-                    lat = np.nanmean(data_fus[1][ind])
-                    lng = np.nanmean(data_fus[2][ind])
+
 
                 # communication data
                 ind = np.where(data_coe[0].between(t2, t2 + deltat, inclusive=True))[0]
