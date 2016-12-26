@@ -45,6 +45,12 @@ def prepare_data(subjects,data_dir ):
             print ' skipping - no data'
             continue
 
+        if os.path.exists(data_dir + subject + '/emm.csv'):
+            target = pd.read_csv(data_dir + subject + '/emm.csv', sep='\t', header=None)
+        else:
+            print ' skipping - no data'
+            continue
+        print
 
 
         for (i, t1) in enumerate(target[0]):
@@ -58,11 +64,24 @@ def prepare_data(subjects,data_dir ):
                 # communication data
                 ind = np.where(data_coe[0].between(t2, t2 + deltat, inclusive=True))[0]
                 if ind.size:
-                    sms = np.sum(data_coe[3][ind] == 'SMS')
-                    phone = np.sum(data_coe[3][ind] == 'PHONE')
-                    incoming = np.sum(data_coe[4][ind] == 'INCOMING')
-                    outgoing = np.sum(data_coe[4][ind] == 'OUTGOING')
-                    missed = np.sum(data_coe[4][ind] == 'MISSED')
+                    b = data_coe[3][ind] == 'SMS'
+                    a = data_coe[3][ind] == 'SMS' and data_coe[4][ind] == 'INCOMING'
+
+                    sms_in = np.sum(data_coe[3][ind] == 'SMS' and data_coe[4][ind] == 'INCOMING')
+                    sms_out = np.sum(data_coe[3][ind] == 'SMS' and data_coe[4][ind] == 'OUTGOING')
+                    sms_miss = np.sum(data_coe[3][ind] == 'SMS' and data_coe[4][ind] == 'MISSED')
+
+                    phone_in = np.sum(data_coe[3][ind] == 'PHONE' and data_coe[4][ind] == 'INCOMING')
+                    phone_out = np.sum(data_coe[3][ind] == 'PHONE' and data_coe[4][ind] == 'OUTGOING')
+                    phone_miss = np.sum(data_coe[3][ind] == 'PHONE' and data_coe[4][ind] == 'MISSED')
+
+                    print 'sms in:',sms_in*1.0/(sms_in+sms_out+sms_miss)
+                    print 'sms out:', sms_out * 1.0 / (sms_in + sms_out + sms_miss)
+                    print 'sms miss:', sms_miss * 1.0 / (sms_in + sms_out + sms_miss)
+                    print 'phone in:', phone_in * 1.0 / (phone_in + phone_out + phone_miss)
+                    print 'phone out:', phone_out * 1.0 / (phone_in + phone_out + phone_miss)
+                    print 'phone miss:', phone_miss * 1.0 / (phone_in + phone_out + phone_miss)
+
                 else:
                     sms = 0
                     phone = 0
@@ -92,37 +111,12 @@ def prepare_data(subjects,data_dir ):
                 else:
                     scr_n = 0
 
-                # audio data
-                ind = np.where(data_aud[0].between(t2, t2 + deltat, inclusive=True))[0]
-                if ind.size:
-                    aud_amp = np.mean(data_aud[2][ind])
-                    aud_frq = np.mean(data_aud[3][ind])
-                else:
-                    aud_amp = 0
-                    aud_frq = 0
-
                 # call data
                 ind = np.where(data_cal[0].between(t2, t2 + deltat, inclusive=True))[0]
                 if ind.size:
                     cal_dur = np.sum(data_cal[1][ind] == 'Off-Hook')
                 else:
                     cal_dur = 0
-
-                # battery data
-                ind = np.where(data_bat[0].between(t2, t2 + deltat, inclusive=True))[0]
-                if ind.size:
-                    bat_charge = np.mean(data_bat[1][ind])
-                    bat_state = stats.mode(data_bat[2][ind])[0][0]
-                else:
-                    bat_charge = np.nan
-                    bat_state = np.nan
-
-                # wifi data
-                ind = np.where(data_wif[0].between(t2, t2 + deltat, inclusive=True))[0]
-                if ind.size:
-                    wif_n = np.mean(data_wif[3][ind])
-                else:
-                    wif_n = np.nan
 
                 # time
                 hour = np.mod(t1, 86400) / 3600.0
@@ -131,7 +125,7 @@ def prepare_data(subjects,data_dir ):
                 # input vector
                 vec = np.array(
                     [lat, lng, hour, dow, sms, phone, incoming, outgoing, missed, act_onfoot, act_still, act_invehicle,
-                     act_tilting, act_confidence, scr_n, aud_amp, aud_frq, cal_dur, bat_charge, bat_state, wif_n])
+                     act_tilting, act_confidence, scr_n, cal_dur,])
 
                 vec = vec.reshape(1, vec.size)
 
