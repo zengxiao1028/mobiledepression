@@ -6,6 +6,13 @@ from scipy import stats
 import datetime,time
 from datetime import timedelta
 from sklearn.externals import joblib
+from keras.preprocessing import sequence
+from keras.utils import np_utils
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation, Embedding
+from keras.layers import LSTM, SimpleRNN, GRU
+from sklearn.model_selection import train_test_split
+
 def datetime2sec(dt):
     sec = time.mktime(dt.timetuple())
     return int(sec)
@@ -96,23 +103,72 @@ def prepare_data(subjects,data_dir ):
         features = np.array(features)
         print (len(features))
 
-        x.append(np.array([features]))
+        x.append(np.array(features))
         y.append(filtered_labels[subject])
 
 
     return x,y
 
+def sub_sample(x, y):
+    new_x = []
+    new_y = []
+    for idx, each in enumerate(x):
+        x_1 = each[:len(x)/2]
+        x_2 = each[len(x)/2:]
+        new_x.append(x_1)
+        new_x.append(x_2)
+        new_y.append(y[idx])
+        new_y.append(y[idx])
+    return new_x,np.array(new_y)
+
 
 if __name__ == '__main__':
 
-    data_dir = 'G:\depressiondata\CS120Data\CS120\\'
-    subjects = os.listdir(data_dir)
 
+    # subjects = os.listdir(data_dir)
+    #
     # x,y = prepare_data(subjects,data_dir)
     # joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
 
     x,y = joblib.load('xiao_dataset.pkl')
+    x = [each[0] for each in x]
+    y = np.array(y)
     print (len(x),len(y))
+
+    x,y = sub_sample(x,y)
+    print (x[0].shape,y[0].shape)
+
+    maxlen = 30
+    batch_size = 4
+
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2,random_state=1)
+
+    X_train = sequence.pad_sequences(X_train, maxlen=maxlen)
+    X_test = sequence.pad_sequences(X_test, maxlen=maxlen)
+
+    print('X_train shape:', X_train.shape)
+    print('X_test shape:', X_test.shape)
+
+    print('Build model...')
+    model = Sequential()
+    model.add(LSTM(128,dropout_W=0.1, dropout_U=0.1,input_shape=(X_train.shape[1], X_train.shape[2])))  # try using a GRU instead, for fun
+    model.add(Dense(10))
+    model.add(Dense(1))
+    model.add(Activation('sigmoid'))
+
+    # try using different optimizers and different optimizer configs
+    model.compile(loss='binary_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+
+    print('Train...')
+    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=30,
+              validation_data=(X_test, y_test))
+    score, acc = model.evaluate(X_test, y_test,
+                                batch_size=batch_size)
+
+    print('\nTest score:', score)
+    print('Test accuracy:', acc)
 
 
 
