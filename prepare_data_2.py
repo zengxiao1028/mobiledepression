@@ -109,16 +109,32 @@ def prepare_data(subjects,data_dir ):
 
     return x,y
 
+# def sub_sample(x, y):
+#     new_x = []
+#     new_y = []
+#     for idx, each in enumerate(x):
+#         x_1 = each[:len(x)/2]
+#         x_2 = each[len(x)/2:]
+#         new_x.append(x_1)
+#         new_x.append(x_2)
+#         new_y.append(y[idx])
+#         new_y.append(y[idx])
+#     return new_x,np.array(new_y)
+
+win_len = 30
+
 def sub_sample(x, y):
     new_x = []
     new_y = []
+    original_len = len(x)
+
+
     for idx, each in enumerate(x):
-        x_1 = each[:len(x)/2]
-        x_2 = each[len(x)/2:]
-        new_x.append(x_1)
-        new_x.append(x_2)
-        new_y.append(y[idx])
-        new_y.append(y[idx])
+        for i in range(0, original_len - win_len + 1, 1):
+            x_win = each[i:i+win_len]
+            new_x.append(x_win)
+            new_y.append(y[idx])
+
     return new_x,np.array(new_y)
 
 
@@ -138,13 +154,12 @@ if __name__ == '__main__':
     x,y = sub_sample(x,y)
     print (x[0].shape,y[0].shape)
 
-    maxlen = 30
-    batch_size = 4
+    batch_size = 32
 
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2,random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2,random_state=0)
 
-    X_train = sequence.pad_sequences(X_train, maxlen=maxlen)
-    X_test = sequence.pad_sequences(X_test, maxlen=maxlen)
+    X_train = sequence.pad_sequences(X_train, maxlen=win_len)
+    X_test = sequence.pad_sequences(X_test, maxlen=win_len)
 
     print('X_train shape:', X_train.shape)
     print('X_test shape:', X_test.shape)
