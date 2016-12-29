@@ -1,8 +1,5 @@
-# coding: utf-8
-
-# In[7]:
-
-# This code prepares sensor and EMA data for the LSTM
+import os
+import pickle
 
 def prepare_data(subjects,data_dir ):
     import pandas as pd
@@ -17,7 +14,7 @@ def prepare_data(subjects,data_dir ):
     y = np.array([])
 
     print 'total subjects:', len(subjects)
-    for (s, subject) in enumerate(subjects):
+    for (s, subject) in enumerate(subjects[:10]):
 
         print s,subject
         if os.path.exists(data_dir + subject + '/act.csv'):
@@ -179,14 +176,10 @@ def prepare_data(subjects,data_dir ):
     return [x, y]
 
 
-# In[26]:
-
 if __name__ == '__main__':
 
-    import os
-    import pickle
-
-    data_dir = '/data/xiao/DepressionData/CS120Data/CS120/'
+    #generated
+    data_dir = 'G:\depressiondata\CS120Data\CS120\\'
     subjects = os.listdir(data_dir)
     # subjects = subjects[:12]
     data = prepare_data(subjects,data_dir)
