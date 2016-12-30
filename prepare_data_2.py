@@ -7,11 +7,6 @@ import datetime,time
 import MyConfig
 from datetime import timedelta
 from sklearn.externals import joblib
-from keras.preprocessing import sequence
-from keras.utils import np_utils
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Embedding
-from keras.layers import LSTM, SimpleRNN, GRU
 from sklearn.model_selection import train_test_split
 
 def datetime2sec(dt):
@@ -47,7 +42,16 @@ def stat_day(time_slice,raw_data_dict):
             act_confidence = 100
 
 
-        span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,act_confidence])
+        # call data
+        data_cal = raw_data_dict['cal']
+        ind = np.where(data_cal[0].between(start, end, inclusive=True))[0]
+        if ind.size:
+            cal_dur = np.sum(data_cal[1][ind] == 'Off-Hook') / float(ind.size)
+        else:
+            cal_dur = 0
+
+
+        span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,act_confidence,cal_dur])
         feature.append(span_feature)
 
     feature = np.hstack(feature)
@@ -61,12 +65,13 @@ def prepare_data(subjects,data_dir ):
         filtered_labels = pickle.load(f)
     f.close()
 
+
     x = []
     y = []
-
     print ('total subjects:', len(subjects))
     for (s, subject) in enumerate(subjects):
         print (s,subject)
+
         if subject not in filtered_labels.keys():
             print ('skip subject:',subject)
             continue
@@ -110,12 +115,11 @@ def prepare_data(subjects,data_dir ):
             feature = stat_day(time_slice,raw_data_dict)
             features.append(feature)
         features = np.array(features)
-        print (len(features))
 
-        x.append(np.array(features))
-        y.append(filtered_labels[subject])
+        x.append( np.array(features) )
+        y.append( filtered_labels[subject] )
 
-
+    print 'remained subjects:',len(x)
     return x,y
 
 

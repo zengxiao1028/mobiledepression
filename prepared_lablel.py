@@ -107,10 +107,9 @@ def main():
     with open('target.pkl', 'wb') as f:
         pickle.dump(filtered_labels,f)
 
-    print 'Finish'
+    print( 'Finish')
 
 if __name__ == '__main__':
-
     main()
 
 
