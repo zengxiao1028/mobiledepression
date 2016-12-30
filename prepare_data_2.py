@@ -121,7 +121,7 @@ def prepare_data(subjects,data_dir ):
 #         new_y.append(y[idx])
 #     return new_x,np.array(new_y)
 
-win_len = 30
+win_len = 14
 
 def sub_sample(x, y):
     new_x = []
@@ -130,7 +130,7 @@ def sub_sample(x, y):
 
 
     for idx, each in enumerate(x):
-        for i in range(0, original_len - win_len + 1, 1):
+        for i in range(0, original_len - win_len + 1, 14):
             x_win = each[i:i+win_len]
             new_x.append(x_win)
             new_y.append(y[idx])
@@ -139,8 +139,7 @@ def sub_sample(x, y):
 
 
 if __name__ == '__main__':
-
-
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     # subjects = os.listdir(data_dir)
     #
     # x,y = prepare_data(subjects,data_dir)
@@ -156,7 +155,7 @@ if __name__ == '__main__':
 
     batch_size = 32
 
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2,random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state=4)
 
     X_train = sequence.pad_sequences(X_train, maxlen=win_len)
     X_test = sequence.pad_sequences(X_test, maxlen=win_len)
@@ -166,8 +165,7 @@ if __name__ == '__main__':
 
     print('Build model...')
     model = Sequential()
-    model.add(LSTM(128,dropout_W=0.1, dropout_U=0.1,input_shape=(X_train.shape[1], X_train.shape[2])))  # try using a GRU instead, for fun
-    model.add(Dense(10))
+    model.add( LSTM(64,dropout_W=0.1, dropout_U=0.1, input_dim=X_train.shape[2], input_length=X_train.shape[1]) )
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
@@ -177,12 +175,12 @@ if __name__ == '__main__':
                   metrics=['accuracy'])
 
     print('Train...')
-    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=30,
+    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=200,
               validation_data=(X_test, y_test))
     score, acc = model.evaluate(X_test, y_test,
                                 batch_size=batch_size)
-
-    print('\nTest score:', score)
+    print('')
+    print('Test score:', score)
     print('Test accuracy:', acc)
 
 

@@ -12,6 +12,7 @@ from what you see with CNNs/MLPs/etc.
 '''
 from __future__ import print_function
 import numpy as np
+import os
 np.random.seed(1337)  # for reproducibility
 
 from keras.preprocessing import sequence
@@ -21,6 +22,7 @@ from keras.layers import Dense, Dropout, Activation, Embedding
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.datasets import imdb
 
+os.environ['CUDA_VISIBLE_DEVICES'] =''
 max_features = 20000
 maxlen = 80  # cut texts after this number of words (among top max_features most common words)
 batch_size = 32
