@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import datetime,time
+import MyConfig
 from datetime import timedelta
 from sklearn.externals import joblib
 from keras.preprocessing import sequence
@@ -80,6 +81,14 @@ def prepare_data(subjects,data_dir ):
             print (' skipping - no data')
             continue
 
+        if os.path.exists(data_dir + subject + '/cal.csv'):
+            data_cal = pd.read_csv(data_dir + subject + '/cal.csv', sep='\t', header=None)
+            raw_data_dict.update({'cal': data_cal})
+        else:
+            print ' skipping - no data'
+            continue
+
+
         ### determine time slices
         start_dt = datetime.datetime.fromtimestamp(data_act.as_matrix()[0][0])
         start_dt = start_dt.replace(hour=00, minute=0,second=1)
@@ -109,17 +118,6 @@ def prepare_data(subjects,data_dir ):
 
     return x,y
 
-# def sub_sample(x, y):
-#     new_x = []
-#     new_y = []
-#     for idx, each in enumerate(x):
-#         x_1 = each[:len(x)/2]
-#         x_2 = each[len(x)/2:]
-#         new_x.append(x_1)
-#         new_x.append(x_2)
-#         new_y.append(y[idx])
-#         new_y.append(y[idx])
-#     return new_x,np.array(new_y)
 
 win_len = 14
 
@@ -139,49 +137,51 @@ def sub_sample(x, y):
 
 
 if __name__ == '__main__':
+
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    # subjects = os.listdir(data_dir)
+
+    subjects = os.listdir(MyConfig.data_dir)
+
+    x,y = prepare_data(subjects,MyConfig.data_dir)
+    joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
+
+    # x,y = joblib.load('xiao_dataset.pkl')
+    # x = [each[0] for each in x]
+    # y = np.array(y)
+    # print (len(x),len(y))
     #
-    # x,y = prepare_data(subjects,data_dir)
-    # joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
-
-    x,y = joblib.load('xiao_dataset.pkl')
-    x = [each[0] for each in x]
-    y = np.array(y)
-    print (len(x),len(y))
-
-    x,y = sub_sample(x,y)
-    print (x[0].shape,y[0].shape)
-
-    batch_size = 32
-
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state=4)
-
-    X_train = sequence.pad_sequences(X_train, maxlen=win_len)
-    X_test = sequence.pad_sequences(X_test, maxlen=win_len)
-
-    print('X_train shape:', X_train.shape)
-    print('X_test shape:', X_test.shape)
-
-    print('Build model...')
-    model = Sequential()
-    model.add( LSTM(64,dropout_W=0.1, dropout_U=0.1, input_dim=X_train.shape[2], input_length=X_train.shape[1]) )
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
-
-    # try using different optimizers and different optimizer configs
-    model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
-                  metrics=['accuracy'])
-
-    print('Train...')
-    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=200,
-              validation_data=(X_test, y_test))
-    score, acc = model.evaluate(X_test, y_test,
-                                batch_size=batch_size)
-    print('')
-    print('Test score:', score)
-    print('Test accuracy:', acc)
+    # x,y = sub_sample(x,y)
+    # print (x[0].shape,y[0].shape)
+    #
+    # batch_size = 32
+    #
+    # X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state=4)
+    #
+    # X_train = sequence.pad_sequences(X_train, maxlen=win_len)
+    # X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+    #
+    # print('X_train shape:', X_train.shape)
+    # print('X_test shape:', X_test.shape)
+    #
+    # print('Build model...')
+    # model = Sequential()
+    # model.add( LSTM(64,dropout_W=0.1, dropout_U=0.1, input_dim=X_train.shape[2], input_length=X_train.shape[1]) )
+    # model.add(Dense(1))
+    # model.add(Activation('sigmoid'))
+    #
+    # # try using different optimizers and different optimizer configs
+    # model.compile(loss='binary_crossentropy',
+    #               optimizer='adam',
+    #               metrics=['accuracy'])
+    #
+    # print('Train...')
+    # model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=200,
+    #           validation_data=(X_test, y_test))
+    # score, acc = model.evaluate(X_test, y_test,
+    #                             batch_size=batch_size)
+    # print('')
+    # print('Test score:', score)
+    # print('Test accuracy:', acc)
 
 
 
