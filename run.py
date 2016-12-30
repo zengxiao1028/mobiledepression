@@ -9,6 +9,13 @@ from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
+from keras.preprocessing import sequence
+from keras.utils import np_utils
+from keras.models import Sequential
+from keras.optimizers import Adam
+from keras.layers import Dense, Dropout, Activation, Embedding
+from keras.layers import LSTM, SimpleRNN, GRU
+from keras.datasets import imdb
 
 def datetime2sec(dt):
     sec = time.mktime(dt.timetuple())
@@ -42,6 +49,7 @@ def stat_day(time_slice,raw_data_dict):
             act_tilting = 0
             act_confidence = 100
 
+
         # call data
         data_cal = raw_data_dict['cal']
         ind = np.where(data_cal[0].between(start, end, inclusive=True))[0]
@@ -54,39 +62,14 @@ def stat_day(time_slice,raw_data_dict):
         data_scr = raw_data_dict['scr']
         ind = np.where(data_scr[0].between(start, end, inclusive=True))[0]
         if ind.size:
-            changes_time = data_scr[0][ind]
             scr_changes = data_scr[1][ind]
-            begin = -1
-            is_recording_on = False
-            total_on_time = 0
-            for time,is_turn_on in zip(changes_time,scr_changes):
-                #screen from off to on
-                if is_turn_on:
-                    begin = time
-                    is_recording_on = True
-                #screen from on to off
-                else:
-                    if is_recording_on:
-                        on_time = time - begin
-                        total_on_time += on_time
-                    is_recording_on = False
-
-            total_time = end - start
-            scr_n = total_on_time*1.0 / total_time
-
+            for each in scr_changes:
+                scr_n = ind.size / 2.0
         else:
             scr_n = 0
 
-        # light data
-        data_lgt = raw_data_dict['lgt']
-        ind = np.where(data_lgt[0].between(start, end, inclusive=True))[0]
-        if ind.size:
-            off_idx = np.where(data_lgt[1][ind].between(0., 50., inclusive=True))[0]
-            lgt_off = off_idx.size / float(ind.size)
-        else:
-            lgt_off = 0
 
-        span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,cal_dur,scr_n,lgt_off])
+        span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,act_confidence,cal_dur])
         feature.append(span_feature)
 
     feature = np.hstack(feature)
@@ -135,13 +118,6 @@ def prepare_data(subjects,data_dir ):
             print ' skipping - no data'
             continue
 
-        if os.path.exists(data_dir + subject + '/lgt.csv'):
-            data_lgt = pd.read_csv(data_dir + subject + '/lgt.csv', sep='\t', header=None)
-            raw_data_dict.update({'lgt': data_lgt})
-        else:
-            print ' skipping - no data'
-            continue
-
         ### determine time slices
         start_dt = datetime.datetime.fromtimestamp(data_act.as_matrix()[0][0])
         start_dt = start_dt.replace(hour=00, minute=0,second=1)
@@ -172,18 +148,89 @@ def prepare_data(subjects,data_dir ):
 
 
 
+def sub_sample(x, y,win_len):
+    new_x = []
+    new_y = []
 
+    for idx, each in enumerate(x):
+        original_len = each.shape[0]
+        for i in range(0, original_len - win_len + 1, 1):
+            x_win = each[i:i+win_len]
+            new_x.append(x_win)
+            new_y.append(y[idx])
 
+    return new_x,np.array(new_y)
+
+def split_sub_sample(x, y,win_len):
+    X_train = []
+    X_test = []
+    y_train = []
+    y_test = []
+    for idx, each in enumerate(x):
+
+        original_len = each.shape[0]
+        split_point = original_len*4/5
+        train = each[:split_point]
+        test = each[split_point:]
+
+        for i in range(0, train.shape[0] - win_len + 1, 1):
+            x_win = train[i:i+win_len]
+            X_train.append(x_win)
+            y_train.append(y[idx])
+        for i in range(0, test.shape[0] - win_len + 1, 1):
+            x_win = test[i:i+win_len]
+            X_test.append(x_win)
+            y_test.append(y[idx])
+
+    return np.array(X_train),np.array(X_test),np.array(y_train),np.array(y_test)
 
 if __name__ == '__main__':
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = ''
+    x,y = joblib.load('xiao_dataset.pkl')
+    y = np.array(y)
 
-    subjects = os.listdir(MyConfig.data_dir)
+    win_len = 3
+    batch_size = 16
 
-    x,y = prepare_data(subjects,MyConfig.data_dir)
-    joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
+    cross_subject = False
+    if cross_subject:
+        X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.2,random_state = 0)
 
+        X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
+        X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
+        X_train = sequence.pad_sequences(X_train, maxlen=win_len)
+        X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+        X_train = np.array(X_train)
+        X_test  = np.array(X_test)
+
+    else:
+        X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
+        X_train = sequence.pad_sequences(X_train, maxlen=win_len)
+        X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+
+
+    print('X_train shape:', X_train.shape)
+    print('X_test shape:', X_test.shape)
+
+    print('Build model...')
+    model = Sequential()
+    model.add( LSTM(64,dropout_W=0.1, dropout_U=0.1, input_dim=X_train.shape[2], input_length=X_train.shape[1]) )
+    model.add(Dense(1))
+    model.add(Activation('sigmoid'))
+
+    # try using different optimizers and different optimizer configs
+    model.compile(loss='binary_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+
+    print('Train...')
+    model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=200,
+              validation_data=(X_test, y_test))
+    score, acc = model.evaluate(X_test, y_test,
+                                batch_size=batch_size)
+    print('')
+    print('Test score:', score)
+    print('Test accuracy:', acc)
 
 
 
