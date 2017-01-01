@@ -85,7 +85,7 @@ if __name__ == '__main__':
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = LeaveOneOut()
         accs = []
-        for train_idx, test_idx in loo.split(x):
+        for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
             #X_train, X_test = x[train_idx], x[test_idx]
             X_train = [x[i] for i in train_idx]
             X_test = [x[i] for i in test_idx]
@@ -108,8 +108,8 @@ if __name__ == '__main__':
             print('Test score:', score)
             print('Test accuracy:', acc)
             accs.append(acc)
-
-        print('Leave one out accuracy:',np.mean(accs))
+            print(idx,'Leave one out accuracy:', np.mean(accs))
+        print('Final Leave one out accuracy:',np.mean(accs))
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
