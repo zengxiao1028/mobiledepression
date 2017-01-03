@@ -16,7 +16,7 @@ from keras.optimizers import Adam
 from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
-
+from sklearn.model_selection import KFold
 
 def sub_sample(x, y,win_len):
     new_x = []
@@ -60,6 +60,12 @@ def get_model():
     model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
                    W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
     model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
+    # model.add(Dense(64,activation='relu',W_regularizer=l2(0.01),input_dim=X_train.shape[1]))
+    # model.add(Dropout(p=0.5))
+    # model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
+    # model.add(Dropout(p=0.5))
+    # model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
+    # model.add(Dropout(p=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
@@ -71,18 +77,18 @@ def get_model():
 
 
 if __name__ == '__main__':
-
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     x,y = joblib.load('xiao_dataset_act_cal_scr_lig.pkl')
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 7
+    win_len = 10
     batch_size = 16
 
-    cross_subject = False
+    cross_subject = True
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
-        loo = LeaveOneOut()
+        loo = KFold(n_splits=10)
         accs = []
         for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
             #X_train, X_test = x[train_idx], x[test_idx]
@@ -96,11 +102,11 @@ if __name__ == '__main__':
             X_test = sequence.pad_sequences(X_test, maxlen=win_len)
             X_train = np.array(X_train)
             X_test  = np.array(X_test)
-
-
+            # X_train = np.reshape(X_train, (X_train.shape[0], -1))
+            # X_test = np.reshape(X_test, (X_test.shape[0], -1))
             model = get_model()
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
                       validation_data=(X_test, y_test))
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
@@ -108,8 +114,8 @@ if __name__ == '__main__':
             print('Test score:', score)
             print('Test accuracy:', acc)
             accs.append(acc)
-            print(idx,'Leave one out accuracy:', np.mean(accs))
-        print('Final Leave one out accuracy:',np.mean(accs))
+            print(idx,'Mean accuracy:', np.mean(accs))
+        print('Final Mean accuracy:',np.mean(accs))
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
@@ -117,18 +123,17 @@ if __name__ == '__main__':
         X_test = sequence.pad_sequences(X_test, maxlen=win_len)
         X_train = np.array(X_train)
         X_test = np.array(X_test)
-
+        X_train = np.reshape(X_train, (X_train.shape[0], -1))
+        X_test = np.reshape(X_test, (X_test.shape[0], -1))
         model = get_model()
         print('Train...')
-        model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
+        model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
                   validation_data=(X_test, y_test))
         score, acc = model.evaluate(X_test, y_test,
                                     batch_size=batch_size)
         print('')
         print('Test score:', score)
         print('Test accuracy:', acc)
-
-        print('accuracy:', acc)
 
 
 
