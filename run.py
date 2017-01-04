@@ -12,12 +12,20 @@ from sklearn.model_selection import LeaveOneOut
 from keras.preprocessing import sequence
 from keras.utils import np_utils
 from keras.models import Sequential
-from keras.optimizers import Adam
+import keras.backend as K
 from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
 from sklearn.model_selection import KFold
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+
+
+def get_activations(model, layer, X_batch):
+    outputs = model.layers[layer].output
+    get_activations = K.function([model.layers[0].input, K.learning_phase()], [outputs])
+    activations = get_activations([X_batch,0])
+    return activations
 
 def sub_sample(x, y,win_len):
     new_x = []
@@ -58,20 +66,20 @@ def split_sub_sample(x, y,win_len):
 def get_model():
     print('Build model...')
     model = Sequential()
-    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
-                   W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
-    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
-    # model.add(Dense(64,activation='relu',W_regularizer=l2(0.01),input_dim=X_train.shape[1]))
-    # model.add(Dropout(p=0.5))
-    # model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
-    # model.add(Dropout(p=0.5))
+    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
+    #                W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
+    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
+    model.add(Dense(64,activation='relu',W_regularizer=l2(0.01),input_dim=X_train.shape[1]))
+    model.add(Dropout(p=0.5))
+    model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
+    model.add(Dropout(p=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
-    # try using different optimizers and different optimizer configs
+
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',
-                  metrics=['accuracy'])
+                  metrics=['binary_accuracy'])
     return model
 
 
@@ -111,14 +119,29 @@ if __name__ == '__main__':
             f = f.flatten()
             X_train = X_train[:, :, f]
             X_test = X_test[:, :, f]
-            # X_train = np.reshape(X_train, (X_train.shape[0], -1))
-            # X_test = np.reshape(X_test, (X_test.shape[0], -1))
+            X_train = np.reshape(X_train, (X_train.shape[0], -1))
+            X_test = np.reshape(X_test, (X_test.shape[0], -1))
             model = get_model()
+            model.summary()
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=10,
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=1,
                       validation_data=(X_test, y_test))
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
+
+
+            #confusion matrix
+            my_featuremaps = get_activations(model, 2, X_train)
+            y_pred = model.predict(X_test)
+            y_pred = y_pred.reshape((y_pred.shape[0],))
+            y_pred[y_pred>0.5] = 1
+            y_pred[y_pred<=0.5] = 0
+            cnf_matrix = confusion_matrix(y_test, y_pred)
+
+            plt.imshow(cnf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+            plt.title('Confusion Matrix')
+            plt.colorbar()
+            plt.show()
             print('')
             print('Test score:', score)
             print('Test accuracy:', acc)

@@ -17,6 +17,9 @@ from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
 from sklearn.model_selection import KFold
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+import scipy
 import cv2
 from sklearn.decomposition import PCA
 
@@ -63,20 +66,33 @@ if __name__ == '__main__':
     x,y = joblib.load('xiao_dataset.pkl')
     y = np.array(y)
 
+    #
+    # x, y = sub_sample(x, y, win_len=10)
+    # x = np.array(x)
+    # x = np.reshape(x, (x.shape[0], -1))
+    #
+    # pca = PCA(n_components=3)
+    # x_projected = pca.fit_transform(x)
+    # print pca
+    #
+    # x_underpessed =  np.array([ each[0] for each in zip(x_projected,y) if each[1]== 0])
+    # x_derpessed = np.array([each[0] for each in zip(x_projected, y) if each[1] == 1] )
+    #
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(x_underpessed[:,0], x_underpessed[:,1], x_underpessed[:,2], c='g', marker='o')
+    # ax.scatter(x_derpessed[:, 0], x_derpessed[:, 1], x_derpessed[:, 2], c='r', marker='o')
+    # plt.show()
 
-    x, y = sub_sample(x, y, win_len=10)
-    x = np.array(x)
-    x = np.reshape(x, (x.shape[0], -1))
 
 
-    pca = PCA(n_components=3)
-    pca.fit(x)
-    print pca
+
 
 
     for idx, subject in enumerate(x):
         print idx
-        #subject = cv2.resize(subject, (0, 0), fx=12.0, fy=12.0)
+        #subject = scipy.misc.imresize(subject,300,interp='nearest')
+        subject = cv2.resize(subject, (0, 0), fx=12.0, fy=12.0, interpolation=cv2.INTER_AREA)
         subject = subject*255
         #cv2.imshow('hi',each)
         if y[idx] == 1:
@@ -85,7 +101,6 @@ if __name__ == '__main__':
             cv2.imwrite('./visualization/0/subject_' + str(idx) + '_.jpg', subject)
         else:
             pass
-        #cv2.waitKey(0)
 
     # for idx, each in enumerate(X_train):
 

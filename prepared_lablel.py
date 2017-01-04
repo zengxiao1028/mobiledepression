@@ -81,7 +81,7 @@ def main():
             if 0<= score <= 9:
                 subject_labels[idx] = 0
             # score>9 , depression(1)
-            elif 15<= score <= 24:
+            elif 9< score <= 27:
                 subject_labels[idx] = 1
             # score< 0
             else:
