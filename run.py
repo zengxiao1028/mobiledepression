@@ -17,6 +17,7 @@ from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
 from sklearn.model_selection import KFold
+from sklearn.metrics import confusion_matrix
 
 def sub_sample(x, y,win_len):
     new_x = []
@@ -39,9 +40,9 @@ def split_sub_sample(x, y,win_len):
     for idx, each in enumerate(x):
 
         original_len = each.shape[0]
-        split_point = original_len*1/5
-        train = each[split_point:]
-        test = each[:split_point]
+        split_point = original_len*4/5
+        train = each[:split_point]
+        test = each[split_point:]
 
         for i in range(0, train.shape[0] - win_len + 1, 1):
             x_win = train[i:i+win_len]
@@ -64,8 +65,6 @@ def get_model():
     # model.add(Dropout(p=0.5))
     # model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
     # model.add(Dropout(p=0.5))
-    # model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
-    # model.add(Dropout(p=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
@@ -78,11 +77,13 @@ def get_model():
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-    x,y = joblib.load('xiao_dataset_act_cal_scr_lig.pkl')
+    x,y = joblib.load('xiao_dataset.pkl')
+
+
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 10
+    win_len = 7
     batch_size = 16
 
     cross_subject = True
@@ -98,15 +99,23 @@ if __name__ == '__main__':
 
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
-            X_train = sequence.pad_sequences(X_train, maxlen=win_len)
-            X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+            X_train = sequence.pad_sequences(X_train, maxlen=win_len,dtype='float')
+            X_test = sequence.pad_sequences(X_test, maxlen=win_len, dtype='float')
             X_train = np.array(X_train)
             X_test  = np.array(X_test)
+
+            f = np.array([ [0,  1,  2,  3,  4,  5, 6],
+                           [7,  8,  9, 10, 11, 12, 13],
+                          [14, 15, 16, 17, 18, 19, 20],
+                          [21, 22, 23, 24, 25, 26, 27]   ])
+            f = f.flatten()
+            X_train = X_train[:, :, f]
+            X_test = X_test[:, :, f]
             # X_train = np.reshape(X_train, (X_train.shape[0], -1))
             # X_test = np.reshape(X_test, (X_test.shape[0], -1))
             model = get_model()
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=10,
                       validation_data=(X_test, y_test))
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
@@ -119,15 +128,23 @@ if __name__ == '__main__':
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
-        X_train = sequence.pad_sequences(X_train, maxlen=win_len)
-        X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+        X_train = sequence.pad_sequences(X_train, maxlen=win_len,dtype='float')
+        X_test = sequence.pad_sequences(X_test, maxlen=win_len,dtype='float')
         X_train = np.array(X_train)
         X_test = np.array(X_test)
+        f = np.array([0, 1, 2, 3, 4, 5, 6,
+                      7, 8, 9, 10, 11, 12 , 13,
+                      14, 15, 16, 17, 18, 19, 20,
+                      21, 22, 23, 24, 25, 26 ,27])
+        #f = f[:, 5]
+
+        X_train = X_train[:, :, f]
+        X_test = X_test[:, :, f]
         X_train = np.reshape(X_train, (X_train.shape[0], -1))
         X_test = np.reshape(X_test, (X_test.shape[0], -1))
         model = get_model()
         print('Train...')
-        model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
+        model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
                   validation_data=(X_test, y_test))
         score, acc = model.evaluate(X_test, y_test,
                                     batch_size=batch_size)

@@ -25,7 +25,7 @@ def stat_day(time_slice,raw_data_dict):
     spans = [(_00,_06),(_06,_12),(_12,_18),(_18,_24)]
 
     feature = []
-    for start,end in spans:
+    for idx,(start,end) in enumerate(spans):
         # activity data
         data_act = raw_data_dict['act']
         ind = np.where(data_act[0].between(start, end, inclusive=True))[0]
@@ -86,7 +86,12 @@ def stat_day(time_slice,raw_data_dict):
         else:
             lgt_off = 0
 
-        span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,cal_dur,scr_n,lgt_off])
+        # if idx == 0:
+        #     span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,cal_dur,scr_n,lgt_off])
+        # else:
+        #     span_feature = np.array([act_onfoot, act_still, act_invehicle, act_tilting, cal_dur, scr_n])
+
+        span_feature = np.array([act_onfoot, act_still, act_invehicle, act_tilting, cal_dur, scr_n, lgt_off])
         feature.append(span_feature)
 
     feature = np.hstack(feature)

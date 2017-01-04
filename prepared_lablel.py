@@ -4,6 +4,7 @@ from scipy import stats
 import os
 import pickle
 import MyConfig
+from sklearn.externals import joblib
 def prepare_label(file_path, parse_cols):
     labels = pd.read_excel(file_path,parse_cols=parse_cols)
     phq9 = labels[82:]
@@ -69,6 +70,7 @@ def main():
         scores_dict[str(subject)] = subject_phq9_scores
 
     print scores_dict
+    joblib.dump(scores_dict,'scores_dict.pkl')
 
     labels_dict = dict()
     for subject in scores_dict.keys():
@@ -76,10 +78,10 @@ def main():
         subject_labels = np.empty_like(subject_phq9_scores)
         for idx,score in enumerate(subject_phq9_scores):
             # score 0-9, nondepression(0)
-            if score>=0 and score <= 9:
+            if 0<= score <= 9:
                 subject_labels[idx] = 0
             # score>9 , depression(1)
-            elif score>9:
+            elif 15<= score <= 24:
                 subject_labels[idx] = 1
             # score< 0
             else:
