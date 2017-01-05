@@ -13,7 +13,7 @@ from keras.preprocessing import sequence
 from keras.utils import np_utils
 from keras.models import Sequential
 import keras.backend as K
-from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional
+from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional, Reshape
 from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
 from sklearn.model_selection import KFold
@@ -21,6 +21,7 @@ from sklearn.metrics import confusion_matrix
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from keras.layers import Convolution2D, MaxPooling2D, Flatten
 
 def get_activations(model, layer, X_batch):
     outputs = model.layers[layer].output
@@ -29,25 +30,40 @@ def get_activations(model, layer, X_batch):
     return activations
 
 def sub_sample(x, y,win_len):
-    weekdays_24_mean = []
-    weekends_24_mean = []
-    new_x = []
+
+    new_x_mean = []
     new_y = []
+
+    new_x_std = []
     for idx, subject in enumerate(x):
         original_len = subject.shape[0]
         for i in range(0, original_len - win_len + 1, 1):
             x_win = subject[i:i+win_len]
 
-            weekdays = [each for each in x_win if 1 <=each[0] <=5]
-            weekends = [each for each in x_win if 6 <= each[0] <= 7]
-            assert len(weekdays)==10
-            assert len(weekends)==4
+            weekdays = np.array([each[1:] for each in x_win if 1 <= each[0] <= 5])
+            weekends = np.array([each[1:] for each in x_win if 6 <= each[0] <= 7])
             #there are 10 weekdays and 4 weekends
+            assert weekdays.shape[0]==10
+            assert weekends.shape[0]==4
 
-            # new_x.append(x_win)
-            # new_y.append(y[idx])
+            weekdays = np.reshape(weekdays,(weekdays.shape[0], 24, -1))
+            weekends = np.reshape(weekends, (weekends.shape[0], 24, -1))
 
-    return weekdays_24_mean,np.array(new_y)
+            #stat mean
+            weekdays_mean = np.mean(weekdays,axis=0)
+            weekends_mean = np.mean(weekends,axis=0)
+            stat_mean = np.array([weekdays_mean,weekends_mean])
+            new_x_mean.append(stat_mean)
+            new_y.append(y[idx])
+
+            # stat std
+            weekdays_std = np.std(weekdays, axis=0)
+            weekends_std = np.std(weekends, axis=0)
+            stat_std = np.array([weekdays_std, weekends_std])
+
+            new_x_std.append(stat_std)
+
+    return np.array(new_x_mean),np.array(new_y)
 
 
 def split_sub_sample(x, y,win_len):
@@ -64,25 +80,88 @@ def split_sub_sample(x, y,win_len):
 
         for i in range(0, train.shape[0] - win_len + 1, 1):
             x_win = train[i:i+win_len]
-            X_train.append(x_win)
+
+            weekdays = np.array([each[1:] for each in x_win if 1 <= each[0] <= 5])
+            weekends = np.array([each[1:] for each in x_win if 6 <= each[0] <= 7])
+            # there are 10 weekdays and 4 weekends
+            assert weekdays.shape[0] == 10
+            assert weekends.shape[0] == 4
+
+            weekdays = np.reshape(weekdays, (weekdays.shape[0], 24, -1))
+            weekends = np.reshape(weekends, (weekends.shape[0], 24, -1))
+
+            # stat mean
+            weekdays_mean = np.mean(weekdays, axis=0)
+            weekends_mean = np.mean(weekends, axis=0)
+            stat_mean = np.array([weekdays_mean, weekends_mean])
+
+            # stat std
+            weekdays_std = np.std(weekdays, axis=0)
+            weekends_std = np.std(weekends, axis=0)
+            stat_std = np.array([weekdays_std, weekends_std])
+
+            #stat_mean_std = np.concatenate((stat_mean,stat_std),axis=2)
+
+            X_train.append(stat_mean)
             y_train.append(y[idx])
+
         for i in range(0, test.shape[0] - win_len + 1, 1):
             x_win = test[i:i+win_len]
-            X_test.append(x_win)
+
+            weekdays = np.array([each[1:] for each in x_win if 1 <= each[0] <= 5])
+            weekends = np.array([each[1:] for each in x_win if 6 <= each[0] <= 7])
+            # there are 10 weekdays and 4 weekends
+            assert weekdays.shape[0] == 10
+            assert weekends.shape[0] == 4
+
+            weekdays = np.reshape(weekdays, (weekdays.shape[0], 24, -1))
+            weekends = np.reshape(weekends, (weekends.shape[0], 24, -1))
+
+            # stat mean
+            weekdays_mean = np.mean(weekdays, axis=0)
+            weekends_mean = np.mean(weekends, axis=0)
+            stat_mean = np.array([weekdays_mean, weekends_mean])
+
+            # stat std
+            weekdays_std = np.std(weekdays, axis=0)
+            weekends_std = np.std(weekends, axis=0)
+            stat_std = np.array([weekdays_std, weekends_std])
+
+            #stat_mean_std = np.concatenate((stat_mean, stat_std), axis=2)
+
+            X_test.append(stat_mean)
             y_test.append(y[idx])
 
     return np.array(X_train),np.array(X_test),np.array(y_train),np.array(y_test)
 
-def get_model():
+
+
+def get_model(X_train):
     print('Build model...')
     model = Sequential()
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
-    #                W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
-    model.add(Dense(64,activation='relu',W_regularizer=l2(0.01),input_dim=X_train.shape[1]))
+
+    model.add(Flatten(input_shape=X_train.shape[1:]))
+    model.add(Dense(256,activation='relu',W_regularizer=l2(0.0001)))
     model.add(Dropout(p=0.5))
-    model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
+    model.add(Dense(256, activation='relu', W_regularizer=l2(0.0001)))
     model.add(Dropout(p=0.5))
+
+
+    # model.add(Convolution2D(256,1, 5, W_regularizer=l2(0.001),input_shape=X_train.shape[1:] ,activation='relu'))
+    # model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
+    # model.add(Dropout(0.5))
+    #
+    # model.add(Convolution2D(256, 2, 3, W_regularizer=l2(0.001),activation='relu'))
+    #
+    # model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
+    # model.add(Dropout(0.5))
+    #
+    # model.add(Flatten())
+    # model.add(Dense(128,W_regularizer=l2(0.001)))
+    # model.add(Activation('relu'))
+    # model.add(Dropout(0.5))
+
+
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
@@ -90,7 +169,44 @@ def get_model():
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
+    model.summary()
     return model
+
+
+# def get_model(X_train):
+#     print('Build model...')
+#     model = Sequential()
+#
+#     # model.add(Flatten(input_shape=X_train.shape[1:]))
+#     # model.add(Dense(128,activation='relu',W_regularizer=l2(0.001)))
+#     # model.add(Dropout(p=0.5))
+#     # model.add(Dense(128, activation='relu', W_regularizer=l2(0.001)))
+#     # model.add(Dropout(p=0.5))
+#
+#     model.add(Convolution2D(128,1, 5, W_regularizer=l2(0.001),input_shape=X_train.shape[1:] ,activation='relu'))
+#     model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
+#     model.add(Dropout(0.5))
+#
+#     model.add(Convolution2D(128, 1, 3, W_regularizer=l2(0.001),activation='relu'))
+#
+#     model.add(MaxPooling2D(pool_size=(1, 2), strides=(1, 1)))
+#     model.add(Dropout(0.5))
+#
+#     model.add(Flatten())
+#     model.add(Dense(64,W_regularizer=l2(0.01)))
+#     model.add(Activation('relu'))
+#     model.add(Dropout(0.5))
+#
+#
+#     model.add(Dense(1))
+#     model.add(Activation('sigmoid'))
+#
+#
+#     model.compile(loss='binary_crossentropy',
+#                   optimizer='adam',
+#                   metrics=['accuracy'])
+#     model.summary()
+#     return model
 
 
 if __name__ == '__main__':
@@ -104,7 +220,7 @@ if __name__ == '__main__':
     win_len = 14
     batch_size = 16
 
-    cross_subject = True
+    cross_subject = False
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = KFold(n_splits=10)
@@ -117,24 +233,12 @@ if __name__ == '__main__':
 
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
-            X_train = sequence.pad_sequences(X_train, maxlen=win_len,dtype='float')
-            X_test = sequence.pad_sequences(X_test, maxlen=win_len, dtype='float')
-            X_train = np.array(X_train)
-            X_test  = np.array(X_test)
 
-            f = np.array([ [0,  1,  2,  3,  4,  5, 6],
-                           [7,  8,  9, 10, 11, 12, 13],
-                          [14, 15, 16, 17, 18, 19, 20],
-                          [21, 22, 23, 24, 25, 26, 27]])
-            f = f.flatten()
-            X_train = X_train[:, :, f]
-            X_test = X_test[:, :, f]
-            X_train = np.reshape(X_train, (X_train.shape[0], -1))
-            X_test = np.reshape(X_test, (X_test.shape[0], -1))
-            model = get_model()
+
+            model = get_model(X_train)
 
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
                       validation_data=(X_test, y_test))
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
@@ -176,21 +280,12 @@ if __name__ == '__main__':
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
-        X_train = sequence.pad_sequences(X_train, maxlen=win_len,dtype='float')
-        X_test = sequence.pad_sequences(X_test, maxlen=win_len,dtype='float')
-        X_train = np.array(X_train)
-        X_test = np.array(X_test)
-        f = np.array([0, 1, 2, 3, 4, 5, 6,
-                      7, 8, 9, 10, 11, 12 , 13,
-                      14, 15, 16, 17, 18, 19, 20,
-                      21, 22, 23, 24, 25, 26 ,27])
-        #f = f[:, 5]
 
-        X_train = X_train[:, :, f]
-        X_test = X_test[:, :, f]
-        X_train = np.reshape(X_train, (X_train.shape[0], -1))
-        X_test = np.reshape(X_test, (X_test.shape[0], -1))
-        model = get_model()
+
+        # X_train = np.reshape(X_train, (X_train.shape[0], -1))
+        # X_test = np.reshape(X_test, (X_test.shape[0], -1))
+
+        model = get_model(X_train)
         print('Train...')
         model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
                   validation_data=(X_test, y_test))
