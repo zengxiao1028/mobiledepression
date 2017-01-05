@@ -18,8 +18,9 @@ from keras.layers import LSTM, SimpleRNN, GRU
 from keras.regularizers import l2
 from sklearn.model_selection import KFold
 from sklearn.metrics import confusion_matrix
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-
+from sklearn.decomposition import PCA
 
 def get_activations(model, layer, X_batch):
     outputs = model.layers[layer].output
@@ -79,19 +80,19 @@ def get_model():
 
     model.compile(loss='binary_crossentropy',
                   optimizer='adam',
-                  metrics=['binary_accuracy'])
+                  metrics=['accuracy'])
     return model
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     x,y = joblib.load('xiao_dataset.pkl')
 
 
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 7
+    win_len = 10
     batch_size = 16
 
     cross_subject = True
@@ -124,24 +125,39 @@ if __name__ == '__main__':
             model = get_model()
             model.summary()
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=1,
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
                       validation_data=(X_test, y_test))
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
 
+            # plot feature maps
+            pca = PCA(n_components=3)
+            my_featuremaps = get_activations(model, 2, X_test)[0]
+            x_projected = pca.fit_transform(my_featuremaps)
+            #
+            x_underpessed =  np.array([ each[0] for each in zip(x_projected, y_test) if each[1]== 0])
+            x_derpessed = np.array([each[0] for each in zip(x_projected, y_test) if each[1] == 1] )
+            #
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.scatter(x_underpessed[:,0], x_underpessed[:,1], x_underpessed[:,2], c='g', marker='o')
+            ax.scatter(x_derpessed[:, 0], x_derpessed[:, 1], x_derpessed[:, 2], c='r', marker='o')
+            plt.show()
 
             #confusion matrix
-            my_featuremaps = get_activations(model, 2, X_train)
-            y_pred = model.predict(X_test)
-            y_pred = y_pred.reshape((y_pred.shape[0],))
-            y_pred[y_pred>0.5] = 1
-            y_pred[y_pred<=0.5] = 0
-            cnf_matrix = confusion_matrix(y_test, y_pred)
+            # y_pred = model.predict(X_test)
+            # y_pred = y_pred.reshape((y_pred.shape[0],))
+            # y_pred[y_pred>0.5] = 1
+            # y_pred[y_pred<=0.5] = 0
+            # cnf_matrix = confusion_matrix(y_test, y_pred)
+            # plt.imshow(cnf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
+            # plt.title('Confusion Matrix')
+            # plt.colorbar()
+            # plt.show()
 
-            plt.imshow(cnf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
-            plt.title('Confusion Matrix')
-            plt.colorbar()
-            plt.show()
+
+
+
             print('')
             print('Test score:', score)
             print('Test accuracy:', acc)
