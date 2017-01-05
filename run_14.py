@@ -29,17 +29,25 @@ def get_activations(model, layer, X_batch):
     return activations
 
 def sub_sample(x, y,win_len):
+    weekdays_24_mean = []
+    weekends_24_mean = []
     new_x = []
     new_y = []
-
-    for idx, each in enumerate(x):
-        original_len = each.shape[0]
+    for idx, subject in enumerate(x):
+        original_len = subject.shape[0]
         for i in range(0, original_len - win_len + 1, 1):
-            x_win = each[i:i+win_len]
-            new_x.append(x_win)
-            new_y.append(y[idx])
+            x_win = subject[i:i+win_len]
 
-    return new_x,np.array(new_y)
+            weekdays = [each for each in x_win if 1 <=each[0] <=5]
+            weekends = [each for each in x_win if 6 <= each[0] <= 7]
+            assert len(weekdays)==10
+            assert len(weekends)==4
+            #there are 10 weekdays and 4 weekends
+
+            # new_x.append(x_win)
+            # new_y.append(y[idx])
+
+    return weekdays_24_mean,np.array(new_y)
 
 
 def split_sub_sample(x, y,win_len):
@@ -50,7 +58,7 @@ def split_sub_sample(x, y,win_len):
     for idx, each in enumerate(x):
 
         original_len = each.shape[0]
-        split_point = original_len*4/5
+        split_point = original_len*5/10
         train = each[:split_point]
         test = each[split_point:]
 
@@ -93,10 +101,10 @@ if __name__ == '__main__':
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 10
+    win_len = 14
     batch_size = 16
 
-    cross_subject = False
+    cross_subject = True
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = KFold(n_splits=10)
