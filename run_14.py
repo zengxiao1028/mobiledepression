@@ -94,13 +94,13 @@ def split_sub_sample(x, y,win_len):
             weekdays_mean = np.mean(weekdays, axis=0)
             weekends_mean = np.mean(weekends, axis=0)
             stat_mean = np.array([weekdays_mean, weekends_mean])
-
-            # stat std
-            weekdays_std = np.std(weekdays, axis=0)
-            weekends_std = np.std(weekends, axis=0)
-            stat_std = np.array([weekdays_std, weekends_std])
-
-            #stat_mean_std = np.concatenate((stat_mean,stat_std),axis=2)
+            #
+            # # stat std
+            # weekdays_std = np.std(weekdays, axis=0)
+            # weekends_std = np.std(weekends, axis=0)
+            # stat_std = np.array([weekdays_std, weekends_std])
+            #
+            # #stat_mean_std = np.concatenate((stat_mean,stat_std),axis=2)
 
             X_train.append(stat_mean)
             y_train.append(y[idx])
@@ -220,7 +220,7 @@ if __name__ == '__main__':
     win_len = 14
     batch_size = 16
 
-    cross_subject = False
+    cross_subject = True
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = KFold(n_splits=10)
@@ -233,7 +233,6 @@ if __name__ == '__main__':
 
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
-
 
             model = get_model(X_train)
 
@@ -280,6 +279,7 @@ if __name__ == '__main__':
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
+
 
 
         # X_train = np.reshape(X_train, (X_train.shape[0], -1))
