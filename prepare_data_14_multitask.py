@@ -18,8 +18,8 @@ def datetime2sec(dt):
 def stat_day(time_slice,raw_data_dict):
 
     hours_dt = dict()
-    interval = 6
-    for x in range(0,25,interval):
+    interval = 24
+    for x in range(0, 25, interval):
         hours_dt[x] = datetime2sec(time_slice - timedelta(hours=(24-x)))
     _00 = datetime2sec(time_slice - timedelta(hours=24))
     _06 = datetime2sec(time_slice - timedelta(hours=18))
