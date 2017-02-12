@@ -22,12 +22,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from keras.layers import Convolution2D, MaxPooling2D, Flatten
+import keras
+from keras.optimizers import RMSprop,SGD
 
-def get_activations(model, layer, X_batch):
-    outputs = model.layers[layer].output
-    get_activations = K.function([model.layers[0].input, K.learning_phase()], [outputs])
-    activations = get_activations([X_batch,0])
-    return activations
 
 def sub_sample(x, y,win_len):
 
@@ -140,36 +137,38 @@ def get_model(X_train):
     print('Build model...')
     model = Sequential()
 
-    model.add(Flatten(input_shape=X_train.shape[1:]))
-    model.add(Dense(256,activation='relu',W_regularizer=l2(0.0001)))
-    model.add(Dropout(p=0.5))
-    model.add(Dense(256, activation='relu', W_regularizer=l2(0.0001)))
-    model.add(Dropout(p=0.5))
+    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
+    #                W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
+    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
+
+    # model.add(Flatten(input_shape=X_train.shape[1:]))
+    # model.add(Dense(256,activation='relu',W_regularizer=l2(0.0001)))
+    # model.add(Dropout(p=0.8))
+    # model.add(Dense(256, activation='relu', W_regularizer=l2(0.0001)))
+    # model.add(Dropout(p=0.8))
 
 
-    # model.add(Convolution2D(256,1, 5, W_regularizer=l2(0.001),input_shape=X_train.shape[1:] ,activation='relu'))
-    # model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
-    # model.add(Dropout(0.5))
-    #
-    # model.add(Convolution2D(256, 2, 3, W_regularizer=l2(0.001),activation='relu'))
-    #
-    # model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
-    # model.add(Dropout(0.5))
-    #
-    # model.add(Flatten())
-    # model.add(Dense(128,W_regularizer=l2(0.001)))
-    # model.add(Activation('relu'))
-    # model.add(Dropout(0.5))
+    model.add(Convolution2D(128, 1, 5, W_regularizer=l2(0.0001),input_shape=X_train.shape[1:] ,activation='relu'))
+    model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
+    model.add(Dropout(0.5))
+
+    model.add(Convolution2D(128, 2, 3, W_regularizer=l2(0.0001),activation='relu'))
+    model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
+    model.add(Dropout(0.5))
+
+    model.add(Flatten())
+    model.add(Dense(128,W_regularizer=l2(0.0001)))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
 
 
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
-
+    optimizer = RMSprop(lr=0.0001, rho=0.5, epsilon=1e-08, decay=0)
     model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
+                  optimizer=optimizer,
                   metrics=['accuracy'])
-    model.summary()
     return model
 
 
@@ -211,14 +210,14 @@ def get_model(X_train):
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    x,y = joblib.load('xiao_dataset.pkl')
+    x,y = joblib.load('../xiao_dataset.pkl')
 
 
     #x = [each[0] for each in x]
     y = np.array(y)
 
     win_len = 14
-    batch_size = 16
+    batch_size = 32
 
     cross_subject = True
     if cross_subject:
@@ -235,10 +234,14 @@ if __name__ == '__main__':
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
 
             model = get_model(X_train)
-
+            earlyStopping = keras.callbacks.EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
-                      validation_data=(X_test, y_test))
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
+                      callbacks=[earlyStopping],
+                      validation_split=0.2,
+                      #validation_data=(X_test,y_test)
+                      )
+
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
 

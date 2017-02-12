@@ -75,13 +75,13 @@ if __name__ == '__main__':
     # x = [each[0] for each in x]
     # y = np.array(y)
 
-    x, y = joblib.load('xiao_dataset_act_cal_scr_lig.pkl')
+    x, y = joblib.load('../data_prepare/xiao_dataset.pkl')
     y = np.array(y)
 
     win_len = 10
     batch_size = 16
 
-    cross_subject = False
+    cross_subject = True
     if cross_subject:
         names, classifiers = get_model()
         for name, classifier in zip(names, classifiers):

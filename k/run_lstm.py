@@ -21,7 +21,8 @@ from sklearn.metrics import confusion_matrix
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-
+from keras.optimizers import RMSprop
+import keras
 def get_activations(model, layer, X_batch):
     outputs = model.layers[layer].output
     get_activations = K.function([model.layers[0].input, K.learning_phase()], [outputs])
@@ -65,38 +66,38 @@ def split_sub_sample(x, y,win_len):
 
     return np.array(X_train),np.array(X_test),np.array(y_train),np.array(y_test)
 
-def get_model():
+def get_model(X_train):
     print('Build model...')
     model = Sequential()
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
-    #                W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
-    model.add(Dense(64,activation='relu',W_regularizer=l2(0.01),input_dim=X_train.shape[1]))
+    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
+                   W_regularizer=l2(0.001), U_regularizer=l2(0.001), input_shape=(X_train.shape[1],X_train.shape[2])))
+    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.001), U_regularizer=l2(0.001)))
+    model.add(Dense(64,activation='relu',W_regularizer=l2(0.001),input_dim=X_train.shape[1]))
     model.add(Dropout(p=0.5))
-    model.add(Dense(64, activation='relu', W_regularizer=l2(0.01)))
+    model.add(Dense(64, activation='relu', W_regularizer=l2(0.001)))
     model.add(Dropout(p=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
-
+    optimizer = RMSprop(lr=0.0001, rho=0.5, epsilon=1e-08, decay=0)
     model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
+                  optimizer=optimizer,
                   metrics=['accuracy'])
     return model
 
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    x,y = joblib.load('xiao_dataset.pkl')
+    x,y = joblib.load('../data_prepare/xiao_dataset.pkl')
 
 
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 10
+    win_len = 14
     batch_size = 16
 
-    cross_subject = False
+    cross_subject = True
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = KFold(n_splits=10)
@@ -114,20 +115,15 @@ if __name__ == '__main__':
             X_train = np.array(X_train)
             X_test  = np.array(X_test)
 
-            f = np.array([ [0,  1,  2,  3,  4,  5, 6],
-                           [7,  8,  9, 10, 11, 12, 13],
-                          [14, 15, 16, 17, 18, 19, 20],
-                          [21, 22, 23, 24, 25, 26, 27]])
-            f = f.flatten()
-            X_train = X_train[:, :, f]
-            X_test = X_test[:, :, f]
-            X_train = np.reshape(X_train, (X_train.shape[0], -1))
-            X_test = np.reshape(X_test, (X_test.shape[0], -1))
-            model = get_model()
+            X_train = X_train[:, :, 1:]
+            X_test = X_test[:, :, 1:]
+            model = get_model(X_train)
 
             print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=100,
-                      validation_data=(X_test, y_test))
+            earlyStopping = keras.callbacks.EarlyStopping(monitor='val_acc', patience=2, verbose=1, mode='auto')
+            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
+                      callbacks=[earlyStopping],
+                      validation_split=0.1)
             score, acc = model.evaluate(X_test, y_test,
                                         batch_size=batch_size)
 
