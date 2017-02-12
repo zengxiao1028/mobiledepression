@@ -1,6 +1,6 @@
 import os
 import pickle
-import pandas as pd
+import tensorflow as tf
 import numpy as np
 from scipy import stats
 import datetime,time
@@ -9,21 +9,11 @@ from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import LeaveOneOut
-from keras.preprocessing import sequence
-from keras.utils import np_utils
-from keras.models import Sequential
-import keras.backend as K
-from keras.layers import Dense, Dropout, Activation, Embedding,Bidirectional, Reshape
-from keras.layers import LSTM, SimpleRNN, GRU
-from keras.regularizers import l2
 from sklearn.model_selection import KFold
 from sklearn.metrics import confusion_matrix
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-from keras.layers import Convolution2D, MaxPooling2D, Flatten
-import keras
-from keras.optimizers import RMSprop,SGD
 
 
 def sub_sample(x, y,win_len):
@@ -133,79 +123,16 @@ def split_sub_sample(x, y,win_len):
 
 
 
-def get_model(X_train):
-    print('Build model...')
-    model = Sequential()
+def get_network(X_train):
+    print('Build network...')
 
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
-    #                W_regularizer=l2(0.01), U_regularizer=l2(0.01), input_shape=(X_train.shape[1],X_train.shape[2])))
-    # model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.01), U_regularizer=l2(0.01)))
-
-    # model.add(Flatten(input_shape=X_train.shape[1:]))
-    # model.add(Dense(256,activation='relu',W_regularizer=l2(0.0001)))
-    # model.add(Dropout(p=0.8))
-    # model.add(Dense(256, activation='relu', W_regularizer=l2(0.0001)))
-    # model.add(Dropout(p=0.8))
+    x_ph = tf.placeholder(dtype=tf.float32,Shape=(None,)+X_train.shape[1:])
+    y_ph = tf.placeholder(dtype=tf.float32,Shape=(None,))
 
 
-    model.add(Convolution2D(128, 1, 5, W_regularizer=l2(0.0001),input_shape=X_train.shape[1:] ,activation='relu'))
-    model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
-    model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, 2, 3, W_regularizer=l2(0.0001),activation='relu'))
-    model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
-    model.add(Dropout(0.5))
-
-    model.add(Flatten())
-    model.add(Dense(128,W_regularizer=l2(0.0001)))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.5))
-
-
-    model.add(Dense(1))
-    model.add(Activation('sigmoid'))
-
-    optimizer = RMSprop(lr=0.0001, rho=0.5, epsilon=1e-08, decay=0)
-    model.compile(loss='binary_crossentropy',
-                  optimizer=optimizer,
-                  metrics=['accuracy'])
     return model
 
-
-# def get_model(X_train):
-#     print('Build model...')
-#     model = Sequential()
-#
-#     # model.add(Flatten(input_shape=X_train.shape[1:]))
-#     # model.add(Dense(128,activation='relu',W_regularizer=l2(0.001)))
-#     # model.add(Dropout(p=0.5))
-#     # model.add(Dense(128, activation='relu', W_regularizer=l2(0.001)))
-#     # model.add(Dropout(p=0.5))
-#
-#     model.add(Convolution2D(128,1, 5, W_regularizer=l2(0.001),input_shape=X_train.shape[1:] ,activation='relu'))
-#     model.add( MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
-#     model.add(Dropout(0.5))
-#
-#     model.add(Convolution2D(128, 1, 3, W_regularizer=l2(0.001),activation='relu'))
-#
-#     model.add(MaxPooling2D(pool_size=(1, 2), strides=(1, 1)))
-#     model.add(Dropout(0.5))
-#
-#     model.add(Flatten())
-#     model.add(Dense(64,W_regularizer=l2(0.01)))
-#     model.add(Activation('relu'))
-#     model.add(Dropout(0.5))
-#
-#
-#     model.add(Dense(1))
-#     model.add(Activation('sigmoid'))
-#
-#
-#     model.compile(loss='binary_crossentropy',
-#                   optimizer='adam',
-#                   metrics=['accuracy'])
-#     model.summary()
-#     return model
 
 
 if __name__ == '__main__':
@@ -221,7 +148,6 @@ if __name__ == '__main__':
 
     cross_subject = True
     if cross_subject:
-        #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
         loo = KFold(n_splits=10)
         accs = []
         for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
@@ -233,7 +159,7 @@ if __name__ == '__main__':
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
 
-            model = get_model(X_train)
+            model = get_network(X_train)
             earlyStopping = keras.callbacks.EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
             print('Train...')
             model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
@@ -288,7 +214,7 @@ if __name__ == '__main__':
         # X_train = np.reshape(X_train, (X_train.shape[0], -1))
         # X_test = np.reshape(X_test, (X_test.shape[0], -1))
 
-        model = get_model(X_train)
+        model = get_network(X_train)
         print('Train...')
         model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=50,
                   validation_data=(X_test, y_test))
