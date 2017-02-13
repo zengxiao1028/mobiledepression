@@ -13,8 +13,8 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import confusion_matrix
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-
+from sklearn.utils import shuffle
+from depression_net import depress_net
 
 def sub_sample(x, y,win_len):
 
@@ -121,35 +121,27 @@ def split_sub_sample(x, y,win_len):
 
     return np.array(X_train),np.array(X_test),np.array(y_train),np.array(y_test)
 
-
-
-def get_network(X_train):
-    print('Build network...')
-
-    x_ph = tf.placeholder(dtype=tf.float32,Shape=(None,)+X_train.shape[1:])
-    y_ph = tf.placeholder(dtype=tf.float32,Shape=(None,))
-
-
-
-    return model
-
+def gen_data(x, y , b_size) :
+    x, y = shuffle(x, y)
+    k = x.shape[0] / b_size
+    for i in range(k):
+        x_batch = x[i*b_size:b_size*(i+1)]
+        y_batch = y[i*b_size:b_size*(i+1)]
+        yield x_batch,y_batch
 
 
 if __name__ == '__main__':
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
-    x,y = joblib.load('../xiao_dataset.pkl')
-
-
-    #x = [each[0] for each in x]
-    y = np.array(y)
+    x,y = joblib.load('../data_prepare/xiao_dataset.pkl')
+    y = np.expand_dims(np.array(y), axis=1)
 
     win_len = 14
-    batch_size = 32
-
+    num_epoch = 1000
     cross_subject = True
+
     if cross_subject:
         loo = KFold(n_splits=10)
-        accs = []
+
         for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
             #X_train, X_test = x[train_idx], x[test_idx]
             X_train = [x[i] for i in train_idx]
@@ -159,52 +151,27 @@ if __name__ == '__main__':
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
 
-            model = get_network(X_train)
-            earlyStopping = keras.callbacks.EarlyStopping(monitor='val_acc', patience=1, verbose=1, mode='auto')
-            print('Train...')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
-                      callbacks=[earlyStopping],
-                      validation_split=0.2,
-                      #validation_data=(X_test,y_test)
-                      )
-
-            score, acc = model.evaluate(X_test, y_test,
-                                        batch_size=batch_size)
-
-            # plot feature maps
-            # pca = PCA(n_components=3)
-            # my_featuremaps = get_activations(model, 2, X_test)[0]
-            # x_projected = pca.fit_transform(my_featuremaps)
-            # #
-            # x_underpessed =  np.array([ each[0] for each in zip(x_projected, y_test) if each[1]== 0])
-            # x_derpessed = np.array([each[0] for each in zip(x_projected, y_test) if each[1] == 1] )
-            # #
-            # fig = plt.figure()
-            # ax = fig.add_subplot(111, projection='3d')
-            # ax.scatter(x_underpessed[:,0], x_underpessed[:,1], x_underpessed[:,2], c='g', marker='o')
-            # ax.scatter(x_derpessed[:, 0], x_derpessed[:, 1], x_derpessed[:, 2], c='r', marker='o')
-            # plt.show()
-
-            #confusion matrix
-            # y_pred = model.predict(X_test)
-            # y_pred = y_pred.reshape((y_pred.shape[0],))
-            # y_pred[y_pred>0.5] = 1
-            # y_pred[y_pred<=0.5] = 0
-            # cnf_matrix = confusion_matrix(y_test, y_pred)
-            # plt.imshow(cnf_matrix, interpolation='nearest', cmap=plt.cm.Blues)
-            # plt.title('Confusion Matrix')
-            # plt.colorbar()
-            # plt.show()
+            net = depress_net(X_train.shape)
+            with tf.Session() as sess:
+                sess.run(tf.global_variables_initializer())
+                while num_epoch>0:
+                    num_epoch -= 1
+                    for X_batch, y_batch in gen_data(X_train, y_train, 16):
+                        _, loss, acc, step, fc2 = sess.run([net.optimizor,net.loss,net.acc,net.global_step,net.fc_2],
+                            feed_dict={net.x_ph:X_batch,net.y_ph:y_batch, net.is_training:True })
 
 
 
+                        if step%100==0:
+                            print('step %d, loss %f, acc %f' % (step, loss, acc))
+                            loss, acc, predict = sess.run([net.loss, net.acc, net.fc_2],
+                                                 feed_dict={net.x_ph: X_test,
+                                                            net.y_ph: y_test,
+                                                            net.is_training: False})
+                            print('test %d, loss %f, acc %f' % (step, loss, acc))
 
-            print('')
-            print('Test score:', score)
-            print('Test accuracy:', acc)
-            accs.append(acc)
-            print(idx,'Mean accuracy:', np.mean(accs))
-        print('Final Mean accuracy:',np.mean(accs))
+
+
 
     else:
         X_train, X_test, y_train, y_test = split_sub_sample(x, y, win_len=win_len)
