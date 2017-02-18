@@ -40,7 +40,7 @@ class depress_net:
             slim.losses.sigmoid_cross_entropy(fc_2, y_ph)
             total_loss = slim.losses.get_total_loss(add_regularization_losses=True)
 
-            optimizor = tf.train.RMSPropOptimizer(learning_rate=1e-5).minimize(total_loss,global_step=global_step)
+            optimizor = tf.train.RMSPropOptimizer(learning_rate=1e-5,momentum=0.5).minimize(total_loss,global_step=global_step)
 
             self.x_ph = x_ph
             self.y_ph = y_ph
@@ -58,3 +58,6 @@ class depress_net:
             self.global_step = global_step
 
 
+
+    def destroy(self):
+        tf.reset_default_graph()

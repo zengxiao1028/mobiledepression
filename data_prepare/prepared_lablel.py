@@ -105,6 +105,16 @@ def main():
                 dprsn_counter += 1
     print 'valid sample num:',dprsn_counter,ndprsn_counter
 
+    #filter out unemployed subjects
+    # filtered_em = dict()
+    # em_dict =joblib.load('em_dict.pkl')
+    # for subject in filtered_labels.keys():
+    #     if em_dict[str(subject)] !=1 :
+    #         continue
+    #     else:
+    #         filtered_em[subject] = filtered_labels[subject]
+    #print 'valid employed subjects num:', len(filtered_em)
+
     with open('target.pkl', 'wb') as f:
         pickle.dump(filtered_labels,f)
 

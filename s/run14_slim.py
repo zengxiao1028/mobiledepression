@@ -22,7 +22,10 @@ def sub_sample(x, y,win_len):
     new_y = []
 
     new_x_std = []
+
+    # for each subject
     for idx, subject in enumerate(x):
+
         original_len = subject.shape[0]
         for i in range(0, original_len - win_len + 1, 1):
             x_win = subject[i:i+win_len]
@@ -50,6 +53,7 @@ def sub_sample(x, y,win_len):
 
             new_x_std.append(stat_std)
 
+
     return np.array(new_x_mean),np.array(new_y)
 
 
@@ -58,6 +62,8 @@ def split_sub_sample(x, y,win_len):
     X_test = []
     y_train = []
     y_test = []
+
+    #for each subject
     for idx, each in enumerate(x):
 
         original_len = each.shape[0]
@@ -65,7 +71,7 @@ def split_sub_sample(x, y,win_len):
         train = each[:split_point]
         test = each[split_point:]
 
-        for i in range(0, train.shape[0] - win_len + 1, 1):
+        for i in range(0, train.shape[0] - win_len + 1):
             x_win = train[i:i+win_len]
 
             weekdays = np.array([each[1:] for each in x_win if 1 <= each[0] <= 5])
@@ -136,12 +142,13 @@ if __name__ == '__main__':
     y = np.expand_dims(np.array(y), axis=1)
 
     win_len = 14
-    num_epoch = 1000
+
     cross_subject = True
 
     if cross_subject:
-        loo = KFold(n_splits=10)
-
+        loo = KFold(n_splits=10,random_state=1024)
+        accs_mean = []
+        net = None
         for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
             #X_train, X_test = x[train_idx], x[test_idx]
             X_train = [x[i] for i in train_idx]
@@ -150,25 +157,35 @@ if __name__ == '__main__':
 
             X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
             X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
-
-            net = depress_net(X_train.shape)
+            if net is None:
+                net = depress_net(X_train.shape)
+            else:
+                pass
             with tf.Session() as sess:
                 sess.run(tf.global_variables_initializer())
+                num_epoch = 5
                 while num_epoch>0:
                     num_epoch -= 1
                     for X_batch, y_batch in gen_data(X_train, y_train, 16):
-                        _, loss, acc, step, fc2 = sess.run([net.optimizor,net.loss,net.acc,net.global_step,net.fc_2],
+                        _, loss, acc, step = sess.run([net.optimizor,net.loss,net.acc,net.global_step],
                             feed_dict={net.x_ph:X_batch,net.y_ph:y_batch, net.is_training:True })
 
 
 
-                        if step%100==0:
-                            print('step %d, loss %f, acc %f' % (step, loss, acc))
-                            loss, acc, predict = sess.run([net.loss, net.acc, net.fc_2],
-                                                 feed_dict={net.x_ph: X_test,
+                        if step%10==0:
+                            loss, acc = sess.run([net.loss, net.acc], feed_dict={net.x_ph: X_test,
                                                             net.y_ph: y_test,
                                                             net.is_training: False})
                             print('test %d, loss %f, acc %f' % (step, loss, acc))
+                test_acc = sess.run([ net.acc],feed_dict={net.x_ph: X_test,
+                                                         net.y_ph: y_test,
+                                                         net.is_training: False})
+            accs_mean.append(test_acc)
+
+
+        print np.array(accs_mean).mean()
+
+
 
 
 
