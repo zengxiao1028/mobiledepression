@@ -19,45 +19,22 @@ def stat_day(time_slice,raw_data_dict):
 
     hours_dt = dict()
     interval = 24
-    for x in range(0, 25, interval):
-        hours_dt[x] = datetime2sec(time_slice - timedelta(hours=(24-x)))
+
+    # for x in range(0, 25, interval):
+    #     hours_dt[x] = datetime2sec(time_slice - timedelta(hours=(24-x)))
+    # spans = []
+    # for x in range(0, 24, interval):
+    #     spans.append((hours_dt[x],hours_dt[x+interval]))
+
     _00 = datetime2sec(time_slice - timedelta(hours=24))
     _06 = datetime2sec(time_slice - timedelta(hours=18))
     _12 = datetime2sec(time_slice - timedelta(hours=12))
     _18 = datetime2sec(time_slice - timedelta(hours=6))
     _24 = datetime2sec(time_slice)
-
-    spans = []
-    for x in range(0, 24, interval):
-        spans.append((hours_dt[x],hours_dt[x+interval]))
+    spans = [(_00,_06)]
 
     feature = []
-    weekday = datetime.datetime.fromtimestamp(_12).isoweekday()
-
-    feature.append([weekday])
     for idx,(start,end) in enumerate(spans):
-        # activity data
-        data_act = raw_data_dict['act']
-        ind = np.where(data_act[0].between(start, end, inclusive=True))[0]
-        if ind.size:
-            act_onfoot = np.sum(data_act[1][ind] == 'ON_FOOT') / float(ind.size)
-            act_still = np.sum(data_act[1][ind] == 'STILL') / float(ind.size)
-            act_invehicle = np.sum(data_act[1][ind] == 'IN_VEHICLE') / float(ind.size)
-            act_tilting = np.sum(data_act[1][ind] == 'TILTING') / float(ind.size)
-            #act_confidence = np.nanmean(data_act[2][ind])
-        else:
-            act_onfoot = 0
-            act_still = 1
-            act_invehicle = 0
-            act_tilting = 0
-
-        # call data
-        data_cal = raw_data_dict['cal']
-        ind = np.where(data_cal[0].between(start, end, inclusive=True))[0]
-        if ind.size:
-            cal_dur = np.sum(data_cal[1][ind] == 'Off-Hook') / float(ind.size)
-        else:
-            cal_dur = 0
 
         # screen data
         data_scr = raw_data_dict['scr']
@@ -80,28 +57,19 @@ def stat_day(time_slice,raw_data_dict):
                         total_on_time += on_time
                     is_recording_on = False
 
-            total_time = end - start
+            total_time = data_scr[0][ind[-1]] - data_scr[0][ind[0]]
             scr_n = total_on_time*1.0 / total_time
 
         else:
             scr_n = 0
 
-        # light data
-        data_lgt = raw_data_dict['lgt']
-        ind = np.where(data_lgt[0].between(start, end, inclusive=True))[0]
-        if ind.size:
-            off_idx = np.where(data_lgt[1][ind].between(0., 50., inclusive=True))[0]
-            lgt_off = off_idx.size / float(ind.size)
-        else:
-            lgt_off = 0
 
-
-        span_feature = np.array([act_onfoot, act_still, act_invehicle, act_tilting, cal_dur, scr_n, lgt_off])
+        span_feature = np.array(scr_n)
 
         feature.append(span_feature)
 
     feature = np.hstack(feature)
-    return feature
+    return np.array(feature)
 
 
 
@@ -193,7 +161,7 @@ if __name__ == '__main__':
     subjects = os.listdir(MyConfig.data_dir)
 
     x,y = prepare_data(subjects,MyConfig.data_dir)
-    joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
+    joblib.dump((x,y),'xiao_dataset_raw.pkl',compress=3)
 
 
 
