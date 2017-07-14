@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 import os
 import pickle
-import MyConfig
+import project_config
 from sklearn.externals import joblib
 def prepare_label(file_path, parse_cols):
     labels = pd.read_excel(file_path,parse_cols=parse_cols)
@@ -11,7 +11,7 @@ def prepare_label(file_path, parse_cols):
     phq9 = phq9.dropna(how='all')
     # phq9 = phq9.set_index('ID').T.to_dict('list')
     # print phq9
-    print len(phq9)
+    print(len(phq9))
     return phq9
 
 def main():
@@ -19,7 +19,7 @@ def main():
     ## CL263NI
     ## 1155329
     ## total phq9_score does not match
-    clinical_path = MyConfig.clinical_path
+    clinical_path = project_config.CLINICAL_PATH
     file_path = os.path.join(clinical_path,'CS120Final_Screener.xlsx')
     week0_phq9 = prepare_label(file_path,'E,BM:BU')
     week0_phq9['sum_score'] = week0_phq9['phq01'] + week0_phq9['phq02'] + week0_phq9['phq03'] + week0_phq9['phq04']\
@@ -69,7 +69,7 @@ def main():
 
         scores_dict[str(subject)] = subject_phq9_scores
 
-    print scores_dict
+    print (scores_dict)
     joblib.dump(scores_dict,'scores_dict.pkl')
 
     labels_dict = dict()
@@ -103,7 +103,7 @@ def main():
             elif subject_labels[0] == 1:
                 filtered_labels[subject] = 1
                 dprsn_counter += 1
-    print 'valid sample num:',dprsn_counter,ndprsn_counter
+    print ('valid sample num:',dprsn_counter,ndprsn_counter)
 
     #filter out unemployed subjects
     # filtered_em = dict()

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import datetime,time
-import MyConfig
+import project_config
 from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
@@ -99,11 +99,11 @@ def stat_day(time_slice,raw_data_dict):
 
 
 
-def prepare_data(subjects,data_dir ):
+def prepare_data(subjects, data_dir ):
 
-    with open('target.pkl') as f:
-        filtered_labels = pickle.load(f)
-    f.close()
+    # with open('target.pkl') as f:
+    #     filtered_labels = pickle.load(f)
+    # f.close()
 
 
     x = []
@@ -112,9 +112,9 @@ def prepare_data(subjects,data_dir ):
     for (s, subject) in enumerate(subjects):
         print (s,subject)
 
-        if subject not in filtered_labels.keys():
-            print ('skip subject:',subject)
-            continue
+        # if subject not in filtered_labels.keys():
+        #     print ('skip subject:',subject)
+        #     continue
 
         ###read data
         raw_data_dict = dict()
@@ -130,21 +130,21 @@ def prepare_data(subjects,data_dir ):
             data_cal = pd.read_csv(data_dir + subject + '/cal.csv', sep='\t', header=None)
             raw_data_dict.update({'cal': data_cal})
         else:
-            print ' skipping - no data'
+            print (' skipping - no data')
             continue
 
         if os.path.exists(data_dir + subject + '/scr.csv'):
             data_scr = pd.read_csv(data_dir + subject + '/scr.csv', sep='\t', header=None)
             raw_data_dict.update({'scr': data_scr})
         else:
-            print ' skipping - no data'
+            print (' skipping - no data')
             continue
 
         if os.path.exists(data_dir + subject + '/lgt.csv'):
             data_lgt = pd.read_csv(data_dir + subject + '/lgt.csv', sep='\t', header=None)
             raw_data_dict.update({'lgt': data_lgt})
         else:
-            print ' skipping - no data'
+            print (' skipping - no data')
             continue
 
         ### determine time slices
@@ -154,10 +154,10 @@ def prepare_data(subjects,data_dir ):
         end_dt = datetime.datetime.fromtimestamp(data_act.as_matrix()[-1][0])
         end_dt = end_dt.replace(hour=00, minute=00, second = 1 ) + timedelta(days=1)
         print (end_dt)
-        print
+        print (end_dt - start_dt)
         time_slices = []
         slice = start_dt + timedelta(days=1)
-        while(slice<=end_dt):
+        while(slice <= end_dt):
             time_slices.append(slice)
             slice = time_slices[-1] + timedelta(days=1)
 
@@ -170,10 +170,11 @@ def prepare_data(subjects,data_dir ):
         features = np.array(features)
 
         x.append( np.array(features) )
-        y.append( filtered_labels[subject] )
+        #y.append( filtered_labels[subject] )
 
-    print 'remained subjects:',len(x)
-    return x,y
+    print ('remained subjects:',len(x))
+    #return x,y
+    return x,0
 
 
 
@@ -184,9 +185,9 @@ if __name__ == '__main__':
 
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
-    subjects = os.listdir(MyConfig.data_dir)
+    subjects = os.listdir(project_config.DATA_DIR)
 
-    x,y = prepare_data(subjects,MyConfig.data_dir)
+    x,y = prepare_data(subjects,project_config.DATA_DIR)
     joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
 
 

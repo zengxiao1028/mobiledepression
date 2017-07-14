@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import datetime,time
-import MyConfig
+import project_config
 from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split

@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 import datetime,time
-import MyConfig
+import project_config
 from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
@@ -20,7 +20,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-
+from sklearn.ensemble import GradientBoostingClassifier
 
 def sub_sample(x, y,win_len):
     new_x = []
@@ -60,11 +60,11 @@ def split_sub_sample(x, y,win_len):
 
 def get_model():
     print('Build model...')
-    names = ["SVM","Random Forest","AdaBoost"]
+    names = ["Random Forest","AdaBoost","GB"]
     classifiers = [
-        SVC(kernel='rbf'),
-        RandomForestClassifier(n_estimators=50),
-        AdaBoostClassifier()]
+        RandomForestClassifier(n_estimators=200),
+        AdaBoostClassifier(),
+        GradientBoostingClassifier()]
 
     return names,classifiers
 
@@ -78,7 +78,8 @@ if __name__ == '__main__':
     x, y = joblib.load('../data_prepare/xiao_dataset.pkl')
     y = np.array(y)
 
-    win_len = 10
+
+    win_len = 7
     batch_size = 16
 
     cross_subject = True
@@ -87,7 +88,7 @@ if __name__ == '__main__':
         for name, classifier in zip(names, classifiers):
             print('Using'+name )
 
-            loo = KFold(n_splits=10)
+            loo = KFold(n_splits=5)
             accs = []
 
             print('Train...')
@@ -99,8 +100,8 @@ if __name__ == '__main__':
 
                 X_train,y_train = sub_sample(X_train,y_train,win_len = win_len)
                 X_test, y_test = sub_sample(X_test, y_test,win_len = win_len)
-                X_train = sequence.pad_sequences(X_train, maxlen=win_len)
-                X_test = sequence.pad_sequences(X_test, maxlen=win_len)
+                #X_train = sequence.pad_sequences(X_train, maxlen=win_len)
+                #X_test = sequence.pad_sequences(X_test, maxlen=win_len)
                 X_train = np.array(X_train)
                 X_test  = np.array(X_test)
                 X_train = np.reshape(X_train,(X_train.shape[0],-1))

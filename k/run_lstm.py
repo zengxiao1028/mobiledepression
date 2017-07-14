@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import datetime,time
-import MyConfig
+import project_config;
 from datetime import timedelta
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
@@ -94,13 +94,13 @@ if __name__ == '__main__':
     #x = [each[0] for each in x]
     y = np.array(y)
 
-    win_len = 14
+    win_len = 7
     batch_size = 16
 
     cross_subject = True
     if cross_subject:
         #X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.1,random_state = 2)
-        loo = KFold(n_splits=10)
+        loo = KFold(n_splits=5)
         accs = []
         for idx,(train_idx, test_idx) in enumerate(loo.split(x)):
             #X_train, X_test = x[train_idx], x[test_idx]
