@@ -3,7 +3,7 @@ from keras.layers import Dense, Dropout, Activation
 from keras.layers import LSTM
 from keras.optimizers import RMSprop
 from keras.regularizers import l2
-from keras.layers import Convolution2D, MaxPooling2D, Flatten
+from keras.layers import Convolution2D, MaxPooling2D, Flatten, Reshape
 
 def lstm_model(input_shape):
     wd = 0.001
@@ -31,12 +31,13 @@ def cnn_model(input_shape):
     wd = 0.001
 
     model = Sequential()
-
-    model.add(Convolution2D(128, 1, 5, W_regularizer=l2(wd),input_shape=input_shape[1:] ,activation='relu'))
+    model.add(Reshape(1,input_shape[1],input_shape[2]),input_shape=input_shape[1:])
+    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd), activation='relu'))
+    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd), activation='relu'))
     model.add(MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, 2, 3, W_regularizer=l2(wd),activation='relu'))
+    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd),activation='relu'))
     model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
     model.add(Dropout(0.5))
 
