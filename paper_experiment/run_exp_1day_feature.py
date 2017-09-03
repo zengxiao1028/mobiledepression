@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
         print('Start training...')
 
-        model = lstm_model(X_train.shape)
+        model = cnn_model(X_train.shape)
         earlyStopping = EarlyStopping(monitor='val_acc', patience=3, verbose=1, mode='auto')
         model.fit(X_train, y_train, batch_size=batch_size, epochs=20,
                   callbacks=[earlyStopping],

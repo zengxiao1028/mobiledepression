@@ -31,14 +31,14 @@ def cnn_model(input_shape):
     wd = 0.001
 
     model = Sequential()
-    model.add(Reshape(1,input_shape[1],input_shape[2]),input_shape=input_shape[1:])
-    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd), activation='relu'))
-    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(1, 3),strides=(1,1) ) )
+    model.add(Reshape( (1,input_shape[1],input_shape[2]), input_shape=input_shape[1:]))
+    model.add(Convolution2D(filters=128, kernel_size=(1, 3), W_regularizer=l2(wd), activation='relu' , padding='same'))
+    model.add(Convolution2D(filters=128, kernel_size=(1, 3), W_regularizer=l2(wd), activation='relu' , padding='valid'))
+    model.add(MaxPooling2D(pool_size=(1, 2),strides=(1,1) ) )
     model.add(Dropout(0.5))
 
-    model.add(Convolution2D(128, 1, 3, W_regularizer=l2(wd),activation='relu'))
-    model.add(MaxPooling2D(pool_size=(1, 3), strides=(1, 1)))
+    model.add(Convolution2D(filters=128, kernel_size=(1, 3) , W_regularizer=l2(wd),activation='relu' , padding='same'))
+    model.add(MaxPooling2D(pool_size=(1, 2), strides=(1, 1)))
     model.add(Dropout(0.5))
 
     model.add(Flatten())
