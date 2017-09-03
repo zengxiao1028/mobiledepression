@@ -13,56 +13,56 @@ def prepare_data(subjects,data_dir ):
     x = np.array([])
     y = np.array([])
 
-    print 'total subjects:', len(subjects)
+    print('total subjects:', len(subjects))
     for (s, subject) in enumerate(subjects[:10]):
 
-        print s,subject
+        print(s,subject)
         if os.path.exists(data_dir + subject + '/act.csv'):
             data_act = pd.read_csv(data_dir + subject + '/act.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/aud.csv'):
             data_aud = pd.read_csv(data_dir + subject + '/aud.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/bat.csv'):
             data_bat = pd.read_csv(data_dir + subject + '/bat.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/cal.csv'):
             data_cal = pd.read_csv(data_dir + subject + '/cal.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/coe.csv'):
             data_coe = pd.read_csv(data_dir + subject + '/coe.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/fus.csv'):
             data_fus = pd.read_csv(data_dir + subject + '/fus.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/scr.csv'):
             data_scr = pd.read_csv(data_dir + subject + '/scr.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/wif.csv'):
             data_wif = pd.read_csv(data_dir + subject + '/wif.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
         if os.path.exists(data_dir + subject + '/emm.csv'):
             target = pd.read_csv(data_dir + subject + '/emm.csv', sep='\t', header=None)
         else:
-            print ' skipping - no data'
+            print(' skipping - no data')
             continue
-        print
+
 
         for (i, t1) in enumerate(target[0]):
             lat = np.nan

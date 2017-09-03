@@ -1,0 +1,120 @@
+import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+import scipy.stats
+import os
+import pickle
+import project_config
+from sklearn.externals import joblib
+import matplotlib.pyplot as plt
+def prepare_label(file_path, parse_cols):
+    labels = pd.read_excel(file_path,parse_cols=parse_cols)
+    phq9 = labels[82:]
+    phq9 = phq9.dropna(how='all')
+    # phq9 = phq9.set_index('ID').T.to_dict('list')
+    # print phq9
+    print(len(phq9))
+    return phq9
+
+def main():
+    ## subjects:
+    ## CL263NI
+    ## 1155329
+    ## total phq9_score does not match
+    clinical_path = project_config.CLINICAL_PATH
+    file_path = os.path.join(clinical_path,'CS120Final_Screener.xlsx')
+    week0_phq9 = prepare_label(file_path,'E,BM:BU')
+    week0_phq9['sum_score'] = week0_phq9['phq01'] + week0_phq9['phq02'] + week0_phq9['phq03'] + week0_phq9['phq04']\
+                        + week0_phq9['phq05'] + week0_phq9['phq06'] + week0_phq9['phq07'] + week0_phq9['phq08']
+    week0_phq9_dict = week0_phq9[['ID','sum_score']].set_index('ID').T.to_dict('list')
+
+    file_path = os.path.join(clinical_path, 'CS120Final_3week.xlsx')
+    week3_phq9 = prepare_label(file_path, 'E,BJ:BQ')
+    week3_phq9['sum_score'] = week3_phq9['phqPrompt01_3wk Little interest or pleasure in doing things'] + \
+                              week3_phq9['phqPrompt01_3wk Feeling down; depressed; or hopeless'] + \
+                              week3_phq9['phqPrompt01_3wk Trouble falling or staying asleep; or sleeping too much'] + \
+                              week3_phq9['phqPrompt01_3wk Feeling tired or having little energy'] + \
+                              week3_phq9['phqPrompt01_3wk Poor appetite or overeating'] + \
+                              week3_phq9['phqPrompt01_3wk Feeling bad about yourself - or that you are a failure or have let yourself or your family down'] + \
+                              week3_phq9['phqPrompt01_3wk Trouble concentrating on things; such as reading the newspaper or watching television'] + \
+                              week3_phq9['phqPrompt01_3wk Moving or speaking so slowly that other people could have noticed. ' \
+                                         'Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual']
+    week3_phq9_dict = week3_phq9[['ID','sum_score']].set_index('ID').T.to_dict('list')
+
+    file_path = os.path.join(clinical_path,'CS120Final_6week.xlsx')
+    week6_phq9 = prepare_label(file_path, 'E,BJ:BQ')
+    week6_phq9['sum_score'] = week6_phq9['phqPrompt01_6wk Little interest or pleasure in doing things'] + \
+                              week6_phq9['phqPrompt01_6wk Feeling down; depressed; or hopeless'] + \
+                              week6_phq9['phqPrompt01_6wk Trouble falling or staying asleep; or sleeping too much'] + \
+                              week6_phq9['phqPrompt01_6wk Feeling tired or having little energy'] + \
+                              week6_phq9['phqPrompt01_6wk Poor appetite or overeating'] + \
+                              week6_phq9[ 'phqPrompt01_6wk Feeling bad about yourself - or that you are a failure or have let yourself or your family down'] + \
+                              week6_phq9['phqPrompt01_6wk Trouble concentrating on things; such as reading the newspaper or watching television'] + \
+                              week6_phq9['phqPrompt01_6wk Moving or speaking so slowly that other people could have noticed. ' \
+                                         'Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual']
+    week6_phq9_dict = week6_phq9[['ID','sum_score']].set_index('ID').T.to_dict('list')
+
+    scores_dict = dict()
+    for subject in week0_phq9_dict.keys():
+        subject_phq9_scores = np.ones((3)) * -1
+
+        assert len(week0_phq9_dict[subject]) == 1
+        subject_phq9_scores[0] = week0_phq9_dict[subject][0]
+
+        if subject in week3_phq9_dict.keys():
+            assert len(week3_phq9_dict[subject]) == 1
+            subject_phq9_scores[1] = week3_phq9_dict[subject][0]
+
+        if subject in week6_phq9_dict.keys():
+            assert len(week6_phq9_dict[subject]) == 1
+            subject_phq9_scores[2] = week6_phq9_dict[subject][0]
+
+        scores_dict[str(subject)] = subject_phq9_scores
+
+    joblib.dump(scores_dict,'scores_dict.pkl')
+
+
+    ### create labels for regression
+    labels_dict = dict()
+    for subject in scores_dict.keys():
+        subject_phq9_scores = scores_dict[subject].astype(np.int32)
+        std = np.std(subject_phq9_scores)
+        labels_dict[subject] = np.rint(np.mean(subject_phq9_scores)) if 0<=std<5 else -10
+
+    ### create labels for classification
+    labels_dict = dict()
+    def generate_classification_labels(subject_phq9_scores):
+        if 0<= subject_phq9_scores[0] <= 9 and 0<= subject_phq9_scores[1] <= 9 and 0<= subject_phq9_scores[2] <= 9:
+            return 0
+        if 9 < subject_phq9_scores[0] <= 27 and 9< subject_phq9_scores[1] <= 27 and 9< subject_phq9_scores[2] <= 27:
+            return 1
+        return -10
+    for subject in scores_dict.keys():
+        subject_phq9_scores = scores_dict[subject].astype(np.int32)
+        labels_dict[subject] = generate_classification_labels(subject_phq9_scores)
+
+    #find consistent samples
+    num_valid_samples = 0
+    num_unvalid_samples = 0
+    filtered_labels = dict()
+    for subject in labels_dict.keys():
+        subject_labels = labels_dict[subject]
+        if labels_dict[subject] >= 0:
+            filtered_labels[subject] = subject_labels
+            num_valid_samples += 1
+        else:
+            num_unvalid_samples += 1
+    print ('valid/unvalid sample num:',num_valid_samples, num_unvalid_samples)
+
+
+    with open('classification_labels.pkl', 'wb') as f:
+        pickle.dump(filtered_labels,f)
+
+    print('Finish')
+
+if __name__ == '__main__':
+    main()
+
+
+

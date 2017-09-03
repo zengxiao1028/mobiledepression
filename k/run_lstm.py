@@ -22,6 +22,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from keras.optimizers import RMSprop
+
+
 import keras
 def get_activations(model, layer, X_batch):
     outputs = model.layers[layer].output
@@ -69,13 +71,13 @@ def split_sub_sample(x, y,win_len):
 def get_model(X_train):
     print('Build model...')
     model = Sequential()
-    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5,  return_sequences=True,
-                   W_regularizer=l2(0.001), U_regularizer=l2(0.001), input_shape=(X_train.shape[1],X_train.shape[2])))
-    model.add(LSTM(64, dropout_W=0.5, dropout_U=0.5, W_regularizer=l2(0.001), U_regularizer=l2(0.001)))
-    model.add(Dense(64,activation='relu',W_regularizer=l2(0.001),input_dim=X_train.shape[1]))
-    model.add(Dropout(p=0.5))
-    model.add(Dense(64, activation='relu', W_regularizer=l2(0.001)))
-    model.add(Dropout(p=0.5))
+    model.add(LSTM(64, dropout=0.5, recurrent_dropout=0.5,  return_sequences=True,
+                   kernel_regularizer=l2(0.001), recurrent_regularizer=l2(0.001), input_shape=(X_train.shape[1],X_train.shape[2])))
+    model.add(LSTM(64, dropout=0.5, recurrent_dropout=0.5, kernel_regularizer=l2(0.001), recurrent_regularizer=l2(0.001)))
+    model.add(Dense(64,activation='relu',kernel_regularizer=l2(0.001),input_dim=X_train.shape[1]))
+    model.add(Dropout(rate=0.5))
+    model.add(Dense(64, activation='relu', kernel_regularizer=l2(0.001)))
+    model.add(Dropout(rate=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))
 
@@ -121,7 +123,7 @@ if __name__ == '__main__':
 
             print('Train...')
             earlyStopping = keras.callbacks.EarlyStopping(monitor='val_acc', patience=2, verbose=1, mode='auto')
-            model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=20,
+            model.fit(X_train, y_train, batch_size=batch_size, epochs=20,
                       callbacks=[earlyStopping],
                       validation_split=0.1)
             score, acc = model.evaluate(X_test, y_test,

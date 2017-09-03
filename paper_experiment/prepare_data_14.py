@@ -17,14 +17,26 @@ def datetime2sec(dt):
 
 def stat_day(time_slice,raw_data_dict):
 
+    hours_dt = dict()
+    interval = 4
+    for x in range(0,25,interval):
+        hours_dt[x] = datetime2sec(time_slice - timedelta(hours=(24-x)))
     _00 = datetime2sec(time_slice - timedelta(hours=24))
     _06 = datetime2sec(time_slice - timedelta(hours=18))
     _12 = datetime2sec(time_slice - timedelta(hours=12))
     _18 = datetime2sec(time_slice - timedelta(hours=6))
     _24 = datetime2sec(time_slice)
-    spans = [(_00,_06),(_06,_12),(_12,_18),(_18,_24)]
+
+    spans = []
+    for x in range(0, 24, interval):
+        spans.append((hours_dt[x],hours_dt[x+interval]))
 
     feature = []
+    weekday = datetime.datetime.fromtimestamp(_12).isoweekday()
+
+    feature.append([time_slice - timedelta(days=1)])
+    feature.append([weekday])
+
     for idx,(start,end) in enumerate(spans):
         # activity data
         data_act = raw_data_dict['act']
@@ -34,13 +46,12 @@ def stat_day(time_slice,raw_data_dict):
             act_still = np.sum(data_act[1][ind] == 'STILL') / float(ind.size)
             act_invehicle = np.sum(data_act[1][ind] == 'IN_VEHICLE') / float(ind.size)
             act_tilting = np.sum(data_act[1][ind] == 'TILTING') / float(ind.size)
-            act_confidence = np.nanmean(data_act[2][ind])
+            #act_confidence = np.nanmean(data_act[2][ind])
         else:
             act_onfoot = 0
             act_still = 1
             act_invehicle = 0
             act_tilting = 0
-            act_confidence = 100
 
         # call data
         data_cal = raw_data_dict['cal']
@@ -86,12 +97,9 @@ def stat_day(time_slice,raw_data_dict):
         else:
             lgt_off = 0
 
-        # if idx == 0:
-        #     span_feature = np.array([act_onfoot,act_still,act_invehicle,act_tilting,cal_dur,scr_n,lgt_off])
-        # else:
-        #     span_feature = np.array([act_onfoot, act_still, act_invehicle, act_tilting, cal_dur, scr_n])
 
         span_feature = np.array([act_onfoot, act_still, act_invehicle, act_tilting, cal_dur, scr_n, lgt_off])
+
         feature.append(span_feature)
 
     feature = np.hstack(feature)
@@ -99,22 +107,22 @@ def stat_day(time_slice,raw_data_dict):
 
 
 
-def prepare_data(subjects, data_dir ):
+def prepare_data(subjects,data_dir, label_path ):
 
-    # with open('target.pkl') as f:
-    #     filtered_labels = pickle.load(f)
-    # f.close()
+    with open(label_path,'rb') as f:
+        filtered_labels = pickle.load(f)
+    f.close()
 
 
-    x = []
-    y = []
+    x = {}
+    y = {}
     print ('total subjects:', len(subjects))
     for (s, subject) in enumerate(subjects):
         print (s,subject)
 
-        # if subject not in filtered_labels.keys():
-        #     print ('skip subject:',subject)
-        #     continue
+        if subject not in filtered_labels.keys():
+            print ('skip subject:',subject)
+            continue
 
         ###read data
         raw_data_dict = dict()
@@ -149,15 +157,15 @@ def prepare_data(subjects, data_dir ):
 
         ### determine time slices
         start_dt = datetime.datetime.fromtimestamp(data_act.as_matrix()[0][0])
-        start_dt = start_dt.replace(hour=00, minute=0,second=1)
+        start_dt = start_dt.replace(hour=00, minute=0,second=0)
         print (start_dt)
         end_dt = datetime.datetime.fromtimestamp(data_act.as_matrix()[-1][0])
-        end_dt = end_dt.replace(hour=00, minute=00, second = 1 ) + timedelta(days=1)
+        end_dt = end_dt.replace(hour=00, minute=00, second = 0 ) + timedelta(days=1)
         print (end_dt)
-        print (end_dt - start_dt)
+
         time_slices = []
         slice = start_dt + timedelta(days=1)
-        while(slice <= end_dt):
+        while(slice<=end_dt):
             time_slices.append(slice)
             slice = time_slices[-1] + timedelta(days=1)
 
@@ -169,12 +177,13 @@ def prepare_data(subjects, data_dir ):
             features.append(feature)
         features = np.array(features)
 
-        x.append( np.array(features) )
-        #y.append( filtered_labels[subject] )
+        #x.append( np.array(features) )
+        #y.append(filtered_labels[subject])
+        x[subject] = np.array(features)
+        y[subject] = filtered_labels[subject]
 
     print ('remained subjects:',len(x))
-    #return x,y
-    return x, 0
+    return x,y
 
 
 
@@ -187,8 +196,10 @@ if __name__ == '__main__':
 
     subjects = os.listdir(project_config.DATA_DIR)
 
-    x,y = prepare_data(subjects, project_config.DATA_DIR)
-    joblib.dump((x,y),'xiao_dataset.pkl',compress=3)
+    x,y = prepare_data(subjects,project_config.DATA_DIR, 'classification_labels.pkl')
+    print(len(x))
+
+    joblib.dump((x,y),'quarter_feature_classification.pkl',compress=3)
 
 
 
