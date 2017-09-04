@@ -18,7 +18,7 @@ def datetime2sec(dt):
 def stat_day(time_slice,raw_data_dict):
 
     hours_dt = dict()
-    interval = 6
+    interval = 24
 
     for x in range(0, 25, interval):
         hours_dt[x] = datetime2sec(time_slice - timedelta(hours=(24-x)))
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     x,y = prepare_data(subjects,project_config.DATA_DIR, 'classification_labels.pkl')
     print(len(x))
 
-    joblib.dump((x,y),'quarter_feature_classification.pkl',compress=3)
+    joblib.dump((x,y),'1day_feature_classification.pkl',compress=3)
 
 
 

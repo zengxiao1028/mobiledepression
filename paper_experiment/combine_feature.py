@@ -84,7 +84,7 @@ def main(feature_path):
 
 if __name__ == '__main__':
 
-    result = main('quarter_feature_classification.pkl')
+    result = main('1day_feature_classification.pkl')
 
     labels = joblib.load('classification_labels.pkl')
     xs = []
@@ -94,7 +94,7 @@ if __name__ == '__main__':
             xs.append( result[subject])
             ys.append( labels[subject])
 
-    joblib.dump((xs,ys),'quarter.pkl')
+    joblib.dump((xs,ys),'1day.pkl')
     print(len(xs))
 
 
