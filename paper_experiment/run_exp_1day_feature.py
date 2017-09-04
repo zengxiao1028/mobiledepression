@@ -9,7 +9,7 @@ from sklearn.externals import joblib
 from sklearn.model_selection import KFold, LeaveOneOut
 
 from sklearn.metrics import mean_squared_error
-from paper_experiment.keras_models import lstm_model,cnn_model,mlp_model
+from keras_models import lstm_model,cnn_model,mlp_model
 from keras.callbacks import EarlyStopping
 def sub_sample(x, y,win_len):
     new_x = []
@@ -96,9 +96,6 @@ if __name__ == '__main__':
 
         print('Start predicting...')
         # predict
-        model.fit(X_train, y_train, batch_size=batch_size, epochs=20,
-                  callbacks=[earlyStopping],
-                  validation_split=0.1)
         score, acc = model.evaluate(X_test, y_test,
                                     batch_size=batch_size)
         accs.append(acc)
