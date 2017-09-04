@@ -51,10 +51,10 @@ def split_sub_sample(x, y,win_len):
 
 if __name__ == '__main__':
     ##prepared_label.py -> classification_labels.pkl
-    ##classification_labels.pkl -> prepared_data_14.py -> 1day_feature_classification.pkl
-    # quarter_feature_classification.pkl,classification_labels.pkl -> quarter.pkl
+    ##classification_labels.pkl -> prepared_data_14.py -> quarter_feature_classification.pkl
+    # quarter_feature_classification.pkl,classification_labels.pkl -> combine_1day_feature -> quarter.pkl
 
-    x, y = joblib.load('./1day.pkl')
+    x, y = joblib.load('./quarter.pkl')
     y = np.array(y)
 
     win_len = 7
