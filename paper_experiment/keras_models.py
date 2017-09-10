@@ -9,12 +9,10 @@ def lstm_model(input_shape):
     wd = 0.001
     print('Build LSTM model...')
     model = Sequential()
-    model.add(LSTM(64, dropout=0.5, recurrent_dropout=0.5,  return_sequences=True,
+    model.add(LSTM(512, dropout=0.5, recurrent_dropout=0.5,  return_sequences=True,
                    kernel_regularizer=l2(wd), recurrent_regularizer=l2(wd), input_shape=(input_shape[1],input_shape[2])))
-    model.add(LSTM(64, dropout=0.5, recurrent_dropout=0.5, kernel_regularizer=l2(wd), recurrent_regularizer=l2(wd)))
-    model.add(Dense(64,activation='relu',kernel_regularizer=l2(wd),input_dim=input_shape[1]))
-    model.add(Dropout(rate=0.5))
-    model.add(Dense(64, activation='relu', kernel_regularizer=l2(wd)))
+    model.add(LSTM(512, dropout=0.5, recurrent_dropout=0.5, kernel_regularizer=l2(wd), recurrent_regularizer=l2(wd)))
+    model.add(Dense(128,activation='relu',kernel_regularizer=l2(wd),input_dim=input_shape[1]))
     model.add(Dropout(rate=0.5))
     model.add(Dense(1))
     model.add(Activation('sigmoid'))

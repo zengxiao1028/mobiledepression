@@ -58,7 +58,7 @@ if __name__ == '__main__':
     y = np.array(y)
 
     win_len = 7
-    batch_size = 16
+    batch_size = 32
 
 
     #loo = KFold(n_splits=5)
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
         print('Start training...')
 
-        model = cnn_model(X_train.shape)
+        model = lstm_model(X_train.shape)
         earlyStopping = EarlyStopping(monitor='val_acc', patience=3, verbose=1, mode='auto')
         model.fit(X_train, y_train, batch_size=batch_size, epochs=20,
                   callbacks=[earlyStopping],
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         score, acc = model.evaluate(X_test, y_test,
                                     batch_size=batch_size)
         accs.append(acc)
-    print('Final Accuracies:',np.mean(accs))
+    print('Final Accuracies:',np.mean(accs),'std',np.std(accs))
 
 
 
